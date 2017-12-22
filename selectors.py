@@ -73,8 +73,9 @@ INTERNET_MOST_TRAFFIC = [
     "urd", # Urdu
 ]
 
-# django.conf.global_settings
-DJANGO_TRANSLATED [
+# django.conf.global_settings, 2017
+# (to use three-letter codes must drop dialects, and added Chinese)
+DJANGO_TRANSLATED = [
     'afr', # Afrikaans
     'ara', # Arabic
     'ast', # Asturian
@@ -161,6 +162,7 @@ DJANGO_TRANSLATED [
     'ukr', # Ukrainian
     'urd', # Urdu
     'vie', # Vietnamese
+    'zoo', # Chinese
     #'zh-hans', # Simplified Chinese
     #'zh-hant', # Traditional Chinese
 ]

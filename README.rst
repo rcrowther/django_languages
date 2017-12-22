@@ -12,9 +12,9 @@ Alternatives
 A module called 'django-languages' already exists in the Python Software package index,
 https://pypi.python.org/pypi/django-languages/0.1 . I have ignored this module. It is not updated for several years.
 
-The app is based in a nice effort called https://github.com/audiolion/django-language-field . This was what I wanted, a form field, but was lacking several facilities (sort, query, etc.)
+The app is based in a nice effort called https://github.com/audiolion/django-language-field . This was what I wanted, a form field, but was lacking several facilities (sort, query, etc.) I didn't know how to fork the project, and have now replaced all the code. 
 
-I have pushed django-languages towards the facilities offered by an excellent, long-standing django app, django-counties https://github.com/SmileyChris/django-countries/tree/master/django_countries (though I am some way from full replication). Like django-countries, the app is not Model-based.
+Some django-languages facilities are taken from an excellent, long-standing django app, django-counties https://github.com/SmileyChris/django-countries/tree/master/django_countries (though I am some way from full replication). Like django-countries, this app is not Model-based.
 
 There are several language apps (though not as many as 'countries' apps),
 
@@ -73,12 +73,27 @@ https://en.wikipedia.org/wiki/Language_family
     Would do justice to Eskimo and Tibetian, but has confusing nomenclature,
 
 
-You get
-+++++++
-https://en.wikipedia.org/wiki/Languages_used_on_the_Internet
-    Useful, expected, if majority bias. I removed Norwegian Bokmål because, as far as I know (very little), the situation in Norway is more involved, and the simple split does no justice here. Catalan is present. Mix of 2 and 3 letter ISO codes. 38 entries.
+For more accurate sorting of translated country names, install the optional
+pyuca_ package.
 
-Django translations from django.conf.global_settings
-    Bias, in a wierd way (Django users). But an interesting list which picks it's way between high web-usage languages 'Tamil', and political issues, 'Afrikaans', 'Catalan'.  Mix of 2 and 3 letter ISO codes with extensions, locale-like e.g. 'it', 'en-gb' 88 entries.
+.. _pyuca: https://pypi.python.org/pypi/pyuca/
+
+Lamguage selection presets
+++++++++++++++++++++++++++
+UNITED_NATIONS
+    Official languages of the UN. 6 entries.
+
+INTERNET_MOST_CONTENT
+    From https://en.wikipedia.org/wiki/Languages_used_on_the_Internet.
+    Contentious subject, but a useful near-Europe set. 39 entries.
     
-Both the above cover the official UN languages; Arabic, Chinese, English, French, Russian and Spanish. They are likely usable for internet and western commerce/academia. They will fail general and specialist cases. For example, Turkish and African languages are not well-represented.
+INTERNET_MOST_TRAFFIC
+    From a Wikipedia link, a list contending the above and very 
+    different (more coverage of languages from Asia). 15 entries.
+     
+DJANGO_TRANSLATED
+    Django translations from django.conf.global_settings, 2017. Not exact; 
+    to use three-letter codes dropped dialects and added plain Chinese.
+    Will reflect areas with computing and Python coding. 78 entries.
+    
+They will fail general and specialist cases. For example, Turkish and African languages are not well-represented. Make your own.

@@ -19,13 +19,13 @@ import os
 import re
 import codecs
 import urllib
-import collections
-from .internet_langs import INTERNET_LANGS
+from .language import Language
+#from .internet_langs import INTERNET_LANGS
 
 #! backup before write
 
-LangDataISO2 = collections.namedtuple('LangDataISO2', 'code3 code2 name')
-Language = collections.namedtuple('Language', 'code3 code2 scope type name')
+#LangDataISO2 = collections.namedtuple('LangDataISO2', 'code3 code2 name')
+#Language = collections.namedtuple('Language', 'code3 code2 scope type name')
 
 def langdataISO3():
     location='http://www-01.sil.org/iso639-3/iso-639-3.tab'
@@ -40,27 +40,27 @@ def langdataISO3():
     return languages[1:]
     
         
-def langdataISO2(basename='iso2.txt'):
+#def langdataISO2(basename='iso2.txt'):
 
 
-    #location='http://www.iana.org/assignments/language-subtag-registry'
-    #lineRE = re.compile('\w\w\w\|[^|]*\|\w\w\|[^|]*\|')
-    sdir = os.path.dirname(os.path.abspath(__file__))
-    filename = os.path.join(sdir, basename)
+    ##location='http://www.iana.org/assignments/language-subtag-registry'
+    ##lineRE = re.compile('\w\w\w\|[^|]*\|\w\w\|[^|]*\|')
+    #sdir = os.path.dirname(os.path.abspath(__file__))
+    #filename = os.path.join(sdir, basename)
 
-    # Get the language list.
-    languages = []
-    with open(filename, 'r') as f:
-        for line in f:
-            data = line.split('|')
-            name_elem = data[3].split(';', 1)
-            name = name_elem[0]
-            # Wrote 486 languages.
-            # Wrote 425 languages.
-            if (not ' languages' in name):
-                lang = LangDataISO2(code3=data[0], code2=data[2], name=name)
-                languages.append(lang)
-    return languages
+    ## Get the language list.
+    #languages = []
+    #with open(filename, 'r') as f:
+        #for line in f:
+            #data = line.split('|')
+            #name_elem = data[3].split(';', 1)
+            #name = name_elem[0]
+            ## Wrote 486 languages.
+            ## Wrote 425 languages.
+            #if (not ' languages' in name):
+                #lang = LangDataISO2(code3=data[0], code2=data[2], name=name)
+                #languages.append(lang)
+    #return languages
         
         
         
@@ -138,8 +138,10 @@ def regenerate(filename=None):
     #write_langfile('langdata_iso2_alpha23.py', varname='ALPHA23_LANGDATA', langlines=lines)
 
     langdata = langdataISO3()
-    lines = ['("{0}", "{1}", "{2}", "{3}", _(u"{4}")),'.format(l.code3, l.code2, l.scope, l.type, l.name) for l in langdata]
+    lines = ['("{0}", "{1}", "{2}", "{3}", _(u"{4}")),'.format(l.code3, l.code2, l.scope, l.type, l.name) for l in langdata if not l.scope == "S"]
     write_langfile('langbase.py', varname='LANGBASE', langlines=lines)
+    lines = ['("{0}", "{1}", "{2}", "{3}", _(u"{4}")),'.format(l.code3, l.code2, l.scope, l.type, l.name) for l in langdata if l.scope == "S"]
+    write_langfile('langbase_specials.py', varname='LANGBASE_SPECIALS', langlines=lines)
 
 
 if __name__ == '__main__':
