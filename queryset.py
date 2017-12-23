@@ -37,6 +37,7 @@ for row in LANGBASE:
 '''
 #? make full __getattr__
 #? index respects two_letter_codes
+#? Index by full iterable length
 class QuerySet():
     '''
     List of language codes.
@@ -118,7 +119,7 @@ class QuerySet():
         self.cache_langmap()
 
 
-    def override_names(self, langcoll):
+    def _override_names(self, langcoll):
         b = []
         override_keys = self.override.keys()
         for l in langcoll:
@@ -152,7 +153,7 @@ class QuerySet():
                     
         # add any overrides
         if (self.override):
-            languages = self.override_names(languages)
+            languages = self._override_names(languages)
 
         # The options for selecting and modifying data are done.
         # cache and build an index
@@ -183,7 +184,7 @@ class QuerySet():
             if (row[0] in self.special_pk_in):  
                 specials.append(Language(*row))
         # add any overrides
-        specials = self.override_names(specials)
+        specials = self._override_names(specials)
         
         #print(str(first))
         self._first_cache = first
@@ -196,18 +197,17 @@ class QuerySet():
     def get_language(self, code):
         return self._code3_index[code]
 
-
-    def translate_pair(self, lang):
+    def _translate_pair(self, lang):
         code = lang.code2 if (self.two_letter_codes and lang.code2) else lang.code3
         return LangData(code, force_text(lang.name))
         
     def __iter__(self):        
         # Yield countries that should be displayed first.
-        first = (self.translate_pair(lang) for lang in self._first_cache)
+        first = (self._translate_pair(lang) for lang in self._first_cache)
         for item in first:
             yield item
             
-        body = (self.translate_pair(lang) for lang in self._body_cache)
+        body = (self._translate_pair(lang) for lang in self._body_cache)
         if self.sort:   
             for item in sorted(body, key=sort_key, reverse=self.reverse):
                 yield item
@@ -215,7 +215,7 @@ class QuerySet():
             for item in body:
                 yield item
 
-        specials = (self.translate_pair(lang) for lang in self._special_cache)
+        specials = (self._translate_pair(lang) for lang in self._special_cache)
         for entry in specials:
             yield entry
                 
