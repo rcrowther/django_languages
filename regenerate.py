@@ -19,7 +19,7 @@ import os
 import re
 import codecs
 import urllib
-from .language import Language
+from .lang_models import Language
 #from .internet_langs import INTERNET_LANGS
 
 #! backup before write

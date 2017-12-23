@@ -2,10 +2,11 @@
 from django.utils.encoding import force_text
 import locale
 import collections
+from itertools import chain
 
 from .langbase import LANGBASE
 from .langbase_specials import LANGBASE_SPECIALS
-from .language import Language
+from .lang_models import Language, LangData
 from .selectors import UNITED_NATIONS, DJANGO_TRANSLATED
 
 try:
@@ -26,7 +27,6 @@ else:
         
            
 
-LangData = collections.namedtuple('LangData', 'code name')
 
 
 _query_template = '''\
@@ -98,15 +98,16 @@ class QuerySet():
     #pk_in = DJANGO_TRANSLATED
     scope_in=[]
     type_in=[]
-    special_pk_in=['mul', 'zxx']
+    special_pk_in=['und', 'mul', 'zxx']
         
     override={'spa' : 'Ole!', 'zxx' : 'gabble!'}
     first=['ara', 'spa']
     first_repeat=True
+    specials_at_end = True
     sort=True
     reverse = False
     two_letter_codes = False
-        
+    
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -178,18 +179,21 @@ class QuerySet():
                         b.append(l)
             languages = b
 
-        # Add specials to the end by name
+        self._first_cache = first
+        self._body_cache = languages
+        
+        
+        # Add specials by name
         specials = []
         for row in LANGBASE_SPECIALS:
             if (row[0] in self.special_pk_in):  
                 specials.append(Language(*row))
         # add any overrides
         specials = self._override_names(specials)
-        
-        #print(str(first))
-        self._first_cache = first
-        self._body_cache = languages
         self._special_cache = specials
+        # add to the index
+        for l in self._special_cache:
+            self._code3_index[l.code3] = l
 
     def get_name(self, code):
         return self._code3_index[code].name
@@ -201,24 +205,25 @@ class QuerySet():
         code = lang.code2 if (self.two_letter_codes and lang.code2) else lang.code3
         return LangData(code, force_text(lang.name))
         
+        
     def __iter__(self):        
-        # Yield countries that should be displayed first.
+        # Yield countries that should be displayed first.            
         first = (self._translate_pair(lang) for lang in self._first_cache)
-        for item in first:
-            yield item
-            
-        body = (self._translate_pair(lang) for lang in self._body_cache)
-        if self.sort:   
-            for item in sorted(body, key=sort_key, reverse=self.reverse):
-                yield item
-        else:
-            for item in body:
-                yield item
 
+        body = (self._translate_pair(lang) for lang in self._body_cache)
+        if (self.sort or self.reverse):   
+            body = sorted(body, key=sort_key, reverse=self.reverse)
         specials = (self._translate_pair(lang) for lang in self._special_cache)
-        for entry in specials:
-            yield entry
-                
+
+        if (not self.specials_at_end):
+           langs = chain(specials, first, body)
+        else:
+           langs = chain(first, body, specials)
+        
+        for entry in langs:
+            yield entry 
+ 
+                              
     def __bool__(self):
         return bool(self._cache)
                      
@@ -235,8 +240,9 @@ class QuerySet():
         size += len(self._body_cache)
         return size
 
-    #def __str__(self):
-
+    def __str__(self):
+        return ('<QuerySet sort:{} len:{}>'.format(self.sort, len(self)))
+        
     def __repr__(self):
         b = []
         for i in self:

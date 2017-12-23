@@ -2,13 +2,18 @@ Django-languages
 ================
 Some support for languages as data.
 
-Please note that this app is not for internationalization, which is translation of the display text in a site, alternative translations of output texts etc. This app is for the input and handling of a language code as a field of data (thus it is much simpler than internationalization). The app may be used, for example, to record what languages a user speaks.
+Please note that this app is not for internationalization, which is translation of the display text in a site etc. This app is for the input and handling of a language code as a field of data (thus it is much simpler than internationalization). The app may be used, for example, to record what languages a user speaks.
 
-If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate, or have translations for, the 'language of Nih'. But this app can record that a person can speak the 'language of Nih'. 
+If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate the 'language of Nih'. But this app can record that a person can speak the 'language of Nih'. 
  
- 
+Limitations
+~~~~~~~~~~~~~
+The app is grounded in 639-3, the (slightly contentious) ISO (more or less) standard. So it only deals in three-letter codes, not locale-like codes. That means, for example, the app can not express the full range of Django translations (as Django contains, for example, translations expressed using locale subtags like 'en-gb', 'en-as').
+
+(on the other hand, 639-3 currently can express 7000+ languages in it's three-letter codes, and is a web standard)
+
 Alternatives
-=============
+~~~~~~~~~~~~~
 A module called 'django-languages' already exists in the Python Software package index,
 https://pypi.python.org/pypi/django-languages/0.1 . I have ignored this module. It is not updated for several years.
 
@@ -39,47 +44,49 @@ The app
 
 Language sets
 ~~~~~~~~~~~~~
-There are many language classifications available. Sets that attempt to cover all/most languages are the size of books. This is unusable/unwanted for most computing environments.
+There are many language classifications available. Sets that attempt to cover all/most languages are the size of books. I'm tired of apps that do not declare their intent (or bias) on this issue. And it is an issue.
 
-I've provided,
 
-- a programming-language locale-like set. 
+The langbase
+++++++++++++
+Though the app has no database model, it provides an in-memory language 'base'. This contains much of the data from ISO 639-3. From there, you do a query.
 
-    This is constructed from ISO 3166-1 alpha-2 (2-letter country) and ISO 639 (language) codes. It is not a mark as defined in any programming language, but close. xxx entries.
+The Queryset class
+~~~~~~~~~~~~~~~~~~
+A queryset is a result from the langbase. Of course, because the langbase is a crude in-memory item, the Queryset is not as sharp in it's queries as a database query language. But, for these purposes, it should be enough.
 
-- ISO 639-1
+Form a queryset, ::
 
-    2 letter codes. As used by Wikipedia and other web software to identify general language speaking areas. 184 entries.
+    QuerySet()
+
+By default this will include the language data from 639-3 that can express Django translations.
+
+Form a different set of language data, selecting by three-letter code, ::
+
+    qs = QuerySet(pk_in=['eng', 'por', 'spn'])
     
-- ISO 639-2
-    3-letter codes. As used incresingly in areas of computing sensitive to languages, or needing finer classification. 464 entries.
+See the data these codes have selected, ::
 
-A reduced list
-~~~~~~~~~~~~~~
-Sometimes it is ok to generalize i.e. all that is needed is a broad idea of where a language is located.
+    for l in qs
+        print(l)
 
+Select only living languages (big list), ::
 
-Avoided
-+++++++++
-https://en.wikipedia.org/wiki/List_of_official_languages_by_country_and_territory
+    qs = QuerySet(type_in=['L'])
 
+See the `639-3 spec`_ for full details.
 
-Maybe I will do?
-+++++++++++++++++++++
-https://en.wikipedia.org/wiki/List_of_languages_by_number_of_native_speakers .
-    Arguable but useful 
+There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. These are, by  default, exculded. You can put them back in,
 
-https://en.wikipedia.org/wiki/Language_family
-    Would do justice to Eskimo and Tibetian, but has confusing nomenclature,
+    qs = QuerySet(special_pk_in=['und'])
+
+appends the und(efined) mark to the queryset.
 
 
-For more accurate sorting of translated country names, install the optional
-pyuca_ package.
+Presets
++++++++
+A few presets have been built for 'pk_in'. All are contentious. But then, if you are not contending this issue, why not?
 
-.. _pyuca: https://pypi.python.org/pypi/pyuca/
-
-Lamguage selection presets
-++++++++++++++++++++++++++
 UNITED_NATIONS
     Official languages of the UN. 6 entries.
 
@@ -93,7 +100,25 @@ INTERNET_MOST_TRAFFIC
      
 DJANGO_TRANSLATED
     Django translations from django.conf.global_settings, 2017. Not exact; 
-    to use three-letter codes dropped dialects and added plain Chinese.
+    some dialects dropped, and added plain Chinese.
     Will reflect areas with computing and Python coding. 78 entries.
-    
-They will fail general and specialist cases. For example, Turkish and African languages are not well-represented. Make your own.
+
+Or make your own.
+
+First
++++++
+Queryset can do a nice trick from 'django-countries', it can pull out some country data and put it first in the list. It can also repeat that data in the main list.
+
+Sorting
++++++++
+For more accurate sorting of translated country names, install the optional
+pyuca_ package.
+
+.. _pyuca: https://pypi.python.org/pypi/pyuca/
+
+Unicode collation. Not customizable, but better than the usual.
+
+
+
+The Field
+~~~~~~~~~
