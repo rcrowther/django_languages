@@ -1,13 +1,62 @@
 from django.db.models.fields import CharField, BLANK_CHOICE_DASH
-from django.forms.fields import MultipleChoiceField, TypedMultipleChoiceField
+from django.forms.fields import TypedChoiceField, TypedMultipleChoiceField
 #from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 #from django.conf.global_settings import LANGUAGES as DJANGO_LANGDATA
 from .queryset import QuerySet
 from .lang_models import Language, EmptyLanguage
-from .selectors import DJANGO_TRANSLATED
+from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
+
+
+#class LanguageDescriptor(object):
+    #"""
+    #A descriptor for country fields on a model instance. Returns a Country when
+    #accessed so you can do things like::
+
+        #>>> from people import Person
+        #>>> person = Person.object.get(name='Chris')
+
+        #>>> person.country.name
+        #'New Zealand'
+
+        #>>> person.country.flag
+        #'/static/flags/nz.gif'
+    #"""
+    #def __init__(self, field):
+        #self.field = field
+
+    ##def __get__(self, instance=None, owner=None):
+        ##print('__get__:')
+        ##if instance is None:
+            ##return self
+        ### Check in case this field was deferred.
+        ##if self.field.name not in instance.__dict__:
+            ##instance.refresh_from_db(fields=[self.field.name])
+        ##value = instance.__dict__[self.field.name]
+        ##print(str(value))
+
+        ###if self.field.multiple:
+        ##if isinstance(value, list):
+            ##return [self.field.queryset.get_language(code) for code in value]
+        ##return self.field.queryset.get_language(value)
+
+    #def _to_code(self, value):
+        #if (isinstance(value, Language)):
+            #return value.code3
+        #else:
+            #return value
+            
+    #def __set__(self, instance, value):
+        #print('__set__:')
+        ##if self.field.multiple:
+        #if isinstance(value, list):
+            #r = [self._to_code(l) for l in value]
+        #else:
+            #r = self._to_code(value)
+        #print(str(r))
+        #instance.__dict__[self.field.name] = r
 
 
 
@@ -24,7 +73,10 @@ class LanguageField(CharField):
         'invalid_choice': _('Select a valid choice. %(value)s is not one of the available choices.'),
     }
     
-    queryset = QuerySet(pk_in=DJANGO_TRANSLATED)
+    #queryset = QuerySet(pk_in=DJANGO_TRANSLATED)
+    queryset = QuerySet(pk_in=UNITED_NATIONS)
+    #descriptor_class = LanguageDescriptor
+
 
     """
     A language field for Django models.
@@ -51,9 +103,10 @@ class LanguageField(CharField):
         #kwargs.setdefault('choices', LANGUAGES)
         super(CharField, self).__init__(*args, **kwargs)
 
-    #def get_internal_type(self):
-        # ensure it's a charfield
-        #return "CharField"
+
+    #def contribute_to_class(self, cls, name):
+        #super().contribute_to_class(cls, name)
+        #setattr(cls, self.name, self.descriptor_class(self))
 
     def deconstruct(self):
         # NB: no ``blank_label`` property, as this isn't database related.
@@ -81,11 +134,14 @@ class LanguageField(CharField):
         include_blank =  False
         # blank_choice always used as there is no internal 'choices'
         # definition
-        return super().get_choices(
+        choices = super().get_choices(
             include_blank=include_blank, 
             blank_choice=blank_choice
         )
-
+        print('choices:')
+        print(str(choices))
+        return choices
+        
     def formfield(self, **kwargs):
         # need a multiple choices form
         argname = 'choices_form_class'
@@ -94,45 +150,43 @@ class LanguageField(CharField):
                 kwargs[argname] = TypedMultipleChoiceField
             else:
                 kwargs[argname] = TypedChoiceField
-        field = super().formfield(**kwargs)
-        return field
+        return super().formfield(**kwargs)
+
+    #def get_prep_value(self, value):
+        #"Python to database value."
+        #print('get_prep_value:')
+        #print(str(value))
+        #if (isinstance(value, list)):
+            #return ','.join(l.code3 for l in value)
+        #else:
+            #return value.code3
 
     def get_prep_value(self, value):
         "Python to database value."
         print('get_prep_value:')
         print(str(value))
-        #if isinstance(value, str):
-            #?
-            #return super().get_prep_value(value)
-        if not self.multiple:
-            return value.code3
-        return ','.join(l.code3 for l in value)
-
-    def _code_to_lang(self, langstr):
+        if (isinstance(value, list)):
+            return ','.join(code for code in value)
+        else:
+            return value
+            
+    def _to_lang(self, value):
+        if (isinstance(value, Language)):
+            return value
+            
         lang = None
         try:
-            lang = self.queryset.get_language(langstr)
+            lang = self.queryset.get_language(value)
         except KeyError:
             raise ValidationError("Invalid value for this language queryset. code: '{}'".format(
-            langstr
+            value
             ))
         return lang
-
-    def _codes_to_langs(self, langs_str, sep=','):
+        
+    def _parse_codes_to_langs(self, langstr):
         b = []
         try:
-            for code in langs_str(sep):
-                b.append(self.queryset.get_language(code))
-        except KeyError:
-            raise ValidationError("Invalid value for this language queryset. code: '{}'".format(
-            code
-            ))
-        return b
-                            
-    def _parse_codes_to_langs(self, langstr, sep=','):
-        b = []
-        try:
-            for code in langstr.split(sep):
+            for code in langstr.split(','):
                 b.append(self.queryset.get_language(code))
         except KeyError:
             raise ValidationError("Invalid value for this language queryset. code: '{}'".format(
@@ -140,46 +194,84 @@ class LanguageField(CharField):
             ))
         return b
          
+    #def from_db_value(self, value, expression, connection, context):
+        #"Database value to Python."
+        #print('from_db_value:')
+        #print(str(value))
+        #r = self._parse_codes_to_langs(value)
+        #return r
     def from_db_value(self, value, expression, connection, context):
         "Database value to Python."
         print('from_db_value:')
         print(str(value))
-        if not self.multiple:
-            return self._code_to_lang(value)
-        return self._parse_codes_to_langs(value, ',')
+        b = []
+        for code in value.split(','):
+            b.append(code)
+        return b
         
+    #def to_python(self, value):
+        #"Deserialization and clean to Python."
+        #print('to_python')
+        #print(str(value))
+        #if (isinstance(value, list)):
+            #return [self._to_lang(e) for e in value]
+        #else:
+          #return self._to_lang(value)
+
     def to_python(self, value):
-        "Deserialozation and clean to Python."
+        "Deserialization and clean to Python."
         print('to_python')
         print(str(value))
-        if (isinstance(value, Language)):
-            return value
-        if not self.multiple:
-            return self._code_to_lang(value)
-        return self._codes_to_langs(value, ',')
+        if (isinstance(value, list)):
+            return [super(LanguageField, self).to_python(e) for e in value]
+        else:
+          return super(LanguageField, self).to_python(value)
+          
+    #def validate(self, value, model_instance):
+        #print('validate:')
+        #print(str(value))
+        #if not self.editable:
+            ## Skip validation for non-editable fields.
+            #return
+            
+        ## super tests for editable, checks choices, checks blanks
+        #if (not isinstance(value, list)):
+            #code = value.code3
+            #if not code in self.queryset:
+                #raise exceptions.ValidationError(
+                    #self.error_messages['invalid_choice'],
+                    #code='invalid_choice',
+                    #params={'value': code},
+                #)
+        #else:
+            #for lang in value:
+                #if not lang.code3 in self.queryset:
+                    #raise exceptions.ValidationError(
+                        #self.error_messages['invalid_choice'],
+                        #code='invalid_choice',
+                        #params={'value': lang.code3},
+                    #)
 
     def validate(self, value, model_instance):
         print('validate:')
         print(str(value))
-        print(str(self.empty_values))
         if not self.editable:
             # Skip validation for non-editable fields.
             return
             
         # super tests for editable, checks choices, checks blanks
-        if not self.multiple:
-            code = value.code3
-            if not code in self.queryset:
-                raise exceptions.ValidationError(
+        if (not isinstance(value, list)):
+            if not value in self.queryset:
+                raise ValidationError(
                     self.error_messages['invalid_choice'],
                     code='invalid_choice',
-                    params={'value': code},
+                    params={'value': value},
                 )
         else:
-            for lang in value:
-                if not lang.code3 in self.queryset:
-                    raise exceptions.ValidationError(
+            for code in value:
+                if not code in self.queryset:
+                    raise ValidationError(
                         self.error_messages['invalid_choice'],
                         code='invalid_choice',
-                        params={'value': lang.code3},
+                        params={'value': code},
                     )
