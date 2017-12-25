@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 from .selectors import *
 
-from .queryset import QuerySet
+from .language_choices import LanguageChoices
 
 from .fields import (
     LanguageField

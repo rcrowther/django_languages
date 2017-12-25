@@ -2,7 +2,7 @@
 from django.utils.encoding import force_text
 import locale
 import collections
-from itertools import chain
+from itertools import chain, islice
 
 from .langbase import LANGBASE
 from .langbase_specials import LANGBASE_SPECIALS
@@ -27,18 +27,53 @@ else:
         
            
 
+class QuerySet():
+    def __init__(self, langtuples):
+        # make a new list so modifications to originals
+        # have no effect i.e. on list level, now immutable 
+        self._langtuples = list(langtuples)
+        self._index = {l.code3:l for l in self._langtuples}
+
+    def __bool__(self):
+        return bool(self._index)
+        
+    def __contains__(self, code):
+        # test code exists
+        return (code in self._index)
+
+    def __getitem__(self, key):
+        # get by key
+        return self._index[key]
+        
+    def __len__(self):
+        return len(self._index)        
+
+    def __str__(self):
+        return ('<QuerySet len:{}>'.format(len(self)))
+        
+    def __repr__(self):
+        b = []
+        for i in self._langtuples:
+            b.append(str(i))
+        return ', '.join(b)
+        
+
+        
+QuerySetEmpty = QuerySet(())
+
+
 
 
 _query_template = '''\
 for row in LANGBASE:
     if ({query}):  
-        b.append(Language(*row))
+        body.append(Language(*row))
 
 '''
 #? make full __getattr__
 #? index respects two_letter_codes
 #? Index by full iterable length
-class QuerySet():
+class LanguageChoices():
     '''
     List of language codes.
 
@@ -101,7 +136,7 @@ class QuerySet():
     special_pk_in=['und', 'mul', 'zxx']
         
     override={'spa' : 'Ole!', 'zxx' : 'gabble!'}
-    first=['ara', 'spa']
+    first_pk_in=['ara', 'spa']
     first_repeat=True
     specials_at_end = True
     sort=True
@@ -111,7 +146,7 @@ class QuerySet():
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-        self._cache = []
+        self.queryset = QuerySetEmpty
         self._first_cache = []
         self._body_cache = []
         self._specials_cache = []
@@ -135,7 +170,6 @@ class QuerySet():
             
     def cache_langmap(self):
         # Dynamically construct the query
-        # then fill in the query action template
         pk_select = 'row[0] in self.pk_in' if self.pk_in else ''
         scope_select = 'row[2] in self.scope_in' if self.scope_in else ''
         type_select = 'row[3] in self.type_in' if self.type_in else ''
@@ -144,56 +178,45 @@ class QuerySet():
         #print('query_tmpl:')
         #print(query_tmpl)
         # Execute the query in this namespace 
-        b = []
+        body = []
         try:
             exec(query_tmpl) #in namespace
         except SyntaxError as e:
             raise SyntaxError(e.message + ':\n' + query_tmpl)
 
-        languages = b
-                    
-        # add any overrides
-        if (self.override):
-            languages = self._override_names(languages)
-
-        # The options for selecting and modifying data are done.
-        # cache and build an index
-        self._cache = languages
-        self._code3_index = {l.code3:l for l in self._cache}
-        self._code2_index = {l.code2:l for l in self._cache if l.code2}
-        #print('query:')
-        #print(str(languages))
-        
-        #grab or extract first
-        first = [0] * len(self.first)
-        b = []
-        if (self.first):
-            for l in languages:
-                if (not(l[0] in self.first)):
-                    b.append(l)
-                else:                
-                    idx = self.first.index(l[0])   
-                    first[idx] = l
-
-                    if (self.first_repeat):
-                        b.append(l)
-            languages = b
-
-        self._first_cache = first
-        self._body_cache = languages
-        
-        
-        # Add specials by name
+        # now query the specials
         specials = []
         for row in LANGBASE_SPECIALS:
             if (row[0] in self.special_pk_in):  
                 specials.append(Language(*row))
+                                    
         # add any overrides
-        specials = self._override_names(specials)
+        if (self.override):
+            body = self._override_names(body)
+            specials = self._override_names(specials)
+
+        # The options for selecting and modifying data are done.
+        # cache and build the queryset
+        self.queryset = QuerySet(chain(body, specials))
+        #self._code3_index = {l.code3:l for l in self.queryset}
+        #self._code2_index = {l.code2:l for l in self.queryset if l.code2}
+        #print('query:')
+        #print(str(languages))
+        
+        # get firsts
+        first = [0] * len(self.first_pk_in)
+        for idx, code in enumerate(self.first_pk_in):
+            first[idx] = self.queryset[code]
+        
+        # if not repeating firsts, need to filter body
+        if (not self.first_repeat):
+            body = [l for l in body if (not (l[0] in self.first_pk_in))]
+
+        # cache the completed iteration data
+        self._first_cache = first
+        self._body_cache = body
         self._special_cache = specials
-        # add to the index
-        for l in self._special_cache:
-            self._code3_index[l.code3] = l
+
 
     def get_name(self, code):
         return self._code3_index[code].name
@@ -223,25 +246,30 @@ class QuerySet():
         for entry in langs:
             yield entry 
  
-                              
     def __bool__(self):
-        return bool(self._cache)
-                     
-    def __contains__(self, code):
-        # test code exists
-        return (code in self._code3_index)
+        return len(self) == 0
 
     def __getitem__(self, index):
         # get by index
-        return self._cache[index]
+        #return self.queryset[index]
+        """
+        Some applications expect to be able to access members of the field
+        choices by index.
+        """
+        try:
+            return next(islice(self.__iter__(), index, index+1))
+        except TypeError:
+            return list(islice(self.__iter__(), index.start, index.stop,
+                               index.step))
         
     def __len__(self):
         size = len(self._first_cache)
         size += len(self._body_cache)
+        size += len(self._specials_cache)
         return size
 
     def __str__(self):
-        return ('<QuerySet sort:{} len:{}>'.format(self.sort, len(self)))
+        return ('<LanguageChoices sort:{} len:{}>'.format(self.sort, len(self)))
         
     def __repr__(self):
         b = []

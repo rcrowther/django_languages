@@ -4,7 +4,7 @@ from django.forms.fields import TypedChoiceField, TypedMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 #from django.conf.global_settings import LANGUAGES as DJANGO_LANGDATA
-from .queryset import QuerySet
+from .language_choices import LanguageChoices
 from .lang_models import Language, EmptyLanguage
 from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
@@ -39,8 +39,8 @@ from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
         ###if self.field.multiple:
         ##if isinstance(value, list):
-            ##return [self.field.queryset.get_language(code) for code in value]
-        ##return self.field.queryset.get_language(value)
+            ##return [self.field.LanguageChoices.get_language(code) for code in value]
+        ##return self.field.LanguageChoices.get_language(value)
 
     #def _to_code(self, value):
         #if (isinstance(value, Language)):
@@ -73,8 +73,8 @@ class LanguageField(CharField):
         'invalid_choice': _('Select a valid choice. %(value)s is not one of the available choices.'),
     }
     
-    #queryset = QuerySet(pk_in=DJANGO_TRANSLATED)
-    queryset = QuerySet(pk_in=UNITED_NATIONS)
+    #LanguageChoices = LanguageChoices(pk_in=DJANGO_TRANSLATED)
+    LanguageChoices = LanguageChoices(pk_in=UNITED_NATIONS)
     #descriptor_class = LanguageDescriptor
 
 
@@ -85,17 +85,17 @@ class LanguageField(CharField):
         # strip=True,
         
         # Local import so the languages aren't loaded unless they are needed.
-        queryset = kwargs.pop('queryset', None)
+        LanguageChoices = kwargs.pop('LanguageChoices', None)
         # languages default is Django languages
-        if queryset:
-            self.queryset = queryset
+        if LanguageChoices:
+            self.LanguageChoices = LanguageChoices
         self.blank_label = kwargs.pop('blank_label', None)
         #! what? where?
         #kwargs['empty_value'] = 'und'
         self.multiple = kwargs.pop('multiple', None)
-        kwargs['choices'] = self.queryset
+        kwargs['choices'] = self.LanguageChoices
         if self.multiple:
-            kwargs['max_length'] = len(self.queryset) * 3
+            kwargs['max_length'] = len(self.LanguageChoices) * 3
         else:
             kwargs['max_length'] = 3
 
@@ -111,12 +111,12 @@ class LanguageField(CharField):
     def deconstruct(self):
         # NB: no ``blank_label`` property, as this isn't database related.
         name, path, args, kwargs = super().deconstruct()
-        # is the queryset, allocated, so remove
+        # is the LanguageChoices, allocated, so remove
         kwargs.pop('choices')
-        # include multiple and the queryset
+        # include multiple and the LanguageChoices
         if self.multiple:
             kwargs['multiple'] = self.multiple
-        kwargs['queryset'] = self.queryset.__class__
+        kwargs['LanguageChoices'] = self.LanguageChoices.__class__
         return name, path, args, kwargs
 
     def get_choices(
@@ -176,9 +176,9 @@ class LanguageField(CharField):
             
         lang = None
         try:
-            lang = self.queryset.get_language(value)
+            lang = self.LanguageChoices.get_language(value)
         except KeyError:
-            raise ValidationError("Invalid value for this language queryset. code: '{}'".format(
+            raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
             value
             ))
         return lang
@@ -187,9 +187,9 @@ class LanguageField(CharField):
         b = []
         try:
             for code in langstr.split(','):
-                b.append(self.queryset.get_language(code))
+                b.append(self.LanguageChoices.get_language(code))
         except KeyError:
-            raise ValidationError("Invalid value for this language queryset. code: '{}'".format(
+            raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
             code
             ))
         return b
@@ -237,7 +237,7 @@ class LanguageField(CharField):
         ## super tests for editable, checks choices, checks blanks
         #if (not isinstance(value, list)):
             #code = value.code3
-            #if not code in self.queryset:
+            #if not code in self.LanguageChoices:
                 #raise exceptions.ValidationError(
                     #self.error_messages['invalid_choice'],
                     #code='invalid_choice',
@@ -245,7 +245,7 @@ class LanguageField(CharField):
                 #)
         #else:
             #for lang in value:
-                #if not lang.code3 in self.queryset:
+                #if not lang.code3 in self.LanguageChoices:
                     #raise exceptions.ValidationError(
                         #self.error_messages['invalid_choice'],
                         #code='invalid_choice',
@@ -261,7 +261,7 @@ class LanguageField(CharField):
             
         # super tests for editable, checks choices, checks blanks
         if (not isinstance(value, list)):
-            if not value in self.queryset:
+            if not value in self.LanguageChoices:
                 raise ValidationError(
                     self.error_messages['invalid_choice'],
                     code='invalid_choice',
@@ -269,7 +269,7 @@ class LanguageField(CharField):
                 )
         else:
             for code in value:
-                if not code in self.queryset:
+                if not code in self.LanguageChoices:
                     raise ValidationError(
                         self.error_messages['invalid_choice'],
                         code='invalid_choice',
