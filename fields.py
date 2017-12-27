@@ -16,10 +16,8 @@ from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 #! default should be valid country code
 #! error cases?
 #! README
-#? enable blank
 #? style
 #? more presets
-#? choices init too complex?
 class LanguageField(CharField):
     default_error_messages = {
         'invalid_choice': _('Select a valid choice. %(value)s is not one of the available choices.'),
@@ -55,6 +53,7 @@ class LanguageField(CharField):
         errors.extend(self._check_not_null())
         errors.extend(self._check_multiple_mul())
         errors.extend(self._check_blank_und())
+        errors.extend(self._check_multiple_blank())
         return errors
 
     def _check_not_null(self):
@@ -77,8 +76,8 @@ class LanguageField(CharField):
                 'Field specifies multiple=True, and "mul" available as a choice.',
                 obj=self,
                 id='django_languages.E002',
-                hint='These are different names for the same condition.'
-                'The condition is not forbidden.'
+                hint='These are different names for the same condition. '
+                'The condition is not forbidden. '
                 'It may express "several"/"too many to list"?',
             )
         ]
@@ -91,13 +90,27 @@ class LanguageField(CharField):
                 'Field specifies blank=True, and "und" available as a choice.',
                 obj=self,
                 id='django_languages.E003',
-                hint='These may be different names for the same condition.'
-                'The configuration is not forbidden.'
+                hint='These may be different names for the same condition. '
+                'The configuration is not forbidden. '
                 'blank=True writes an empty string to the database, "und" is used by ISO for "undefined".'
                 'They may express different types of non-definition?',
             )
         ]
-                
+
+    def _check_multiple_blank(self):
+        if (not (self.multiple and self.blank)):
+            return []
+        return [
+            checks.Error(
+                'Field specifies multiple=True and blank=True.',
+                obj=self,
+                id='django_languages.E004',
+                hint='blank entries can not be highlighted. '
+                'This muddles the multiple widget display. '
+                'Try propmoting "mul" or "und"?',
+            )
+        ]                
+        
     def deconstruct(self):
         # NB: no ``blank_label`` property, as this isn't database related.
         name, path, args, kwargs = super().deconstruct()
@@ -117,13 +130,12 @@ class LanguageField(CharField):
     ):
         # Need to provide a blank label.
         # our choices are auto-generated, so no internal-defined option
-        #if self.blank_label:
-        #    blank_choice = [('', self.blank_label)]
+        if self.blank_label:
+            blank_choice = [('', self.blank_label)]
         #if self.multiple:
         #    include_blank = False
-        include_blank =  False
-        # blank_choice always used as there is no internal 'choices'
-        # definition
+        # NB: blank_choice always used as there is no internal 'choices'
+        # definition for coders to interact with
         choices = super().get_choices(
             include_blank=include_blank, 
             blank_choice=blank_choice
@@ -133,6 +145,8 @@ class LanguageField(CharField):
         return choices
 
     def _to_lang(self, value):
+        if not value:
+            return value
         if (isinstance(value, Language)):
             return value
         lang = None
@@ -187,7 +201,10 @@ class LanguageField(CharField):
         b = []
         try:
             for code in langstr.split(','):
-                b.append(self.lang_choices.queryset[code])
+                # can be empty string for blank
+                # no need to add blank, Django creates the option
+                if code:
+                    b.append(self.lang_choices.queryset[code])
         except KeyError:
             raise ValidationError("Invalid value supplied for choices. code: '{}'".format(
             code
@@ -210,27 +227,31 @@ class LanguageField(CharField):
         else:
           return self._to_lang(value)
   
+    def _validate_code(self, value):
+        if not value.code3 in self.lang_choices.queryset:
+            raise ValidationError(
+                self.error_messages['invalid_choice'],
+                code='invalid_choice',
+                params={'value': lang.code3},
+            )      
+            
     def validate(self, value, model_instance):
         print('validate:')
         print(str(value))
         if not self.editable:
             # Skip validation for non-editable fields.
             return
-            
-        # super tests for editable, checks choices, checks blanks
+                       
         if (not isinstance(value, list)):
-            code = value.code3
-            if not code in self.lang_choices.queryset:
-                raise ValidationError(
-                    self.error_messages['invalid_choice'],
-                    code='invalid_choice',
-                    params={'value': code},
-                )
+            # brief validation for blank fields.
+            if not value:
+                if not self.blank:
+                    raise exceptions.ValidationError(
+                        self.error_messages['blank'], code='blank')
+                else:
+                    return
+            self._validate_code(value)
         else:
-            for lang in value:
-                if not lang.code3 in self.lang_choices.queryset:
-                    raise ValidationError(
-                        self.error_messages['invalid_choice'],
-                        code='invalid_choice',
-                        params={'value': lang.code3},
-                    )
+            for v in value:
+                self._validate_code(v)
+
