@@ -165,7 +165,9 @@ class LanguageChoices():
                 key = l.code3
                 override_val = self.override[key]
                 if override_val:
-                    b.append(l._replace(name=override_val))
+                    #b.append(l._replace(name=override_val))
+                    l.name=override_val
+                    b.append(l)
         return b
             
     def cache_langmap(self):
@@ -217,17 +219,9 @@ class LanguageChoices():
         self._body_cache = body
         self._special_cache = specials
 
-
-    def get_name(self, code):
-        return self._code3_index[code].name
-
-    def get_language(self, code):
-        return self._code3_index[code]
-
     def _translate_pair(self, lang):
         code = lang.code2 if (self.two_letter_codes and lang.code2) else lang.code3
         return LangData(code, force_text(lang.name))
-        
         
     def __iter__(self):        
         # Yield countries that should be displayed first.            
@@ -247,7 +241,7 @@ class LanguageChoices():
             yield entry 
  
     def __bool__(self):
-        return len(self) == 0
+        return len(self) != 0
 
     def __getitem__(self, index):
         # get by index

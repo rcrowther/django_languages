@@ -1,6 +1,5 @@
 from django.db.models.fields import CharField, BLANK_CHOICE_DASH
 from django.forms.fields import TypedChoiceField, TypedMultipleChoiceField
-#from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 #from django.conf.global_settings import LANGUAGES as DJANGO_LANGDATA
@@ -8,7 +7,17 @@ from .language_choices import LanguageChoices
 from .lang_models import Language, EmptyLanguage
 from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
+from django.forms.widgets import Select
 
+class Select2(Select):
+    def optgroups(self, name, value, attrs=None):
+        print('optgroups:')
+        print(str(name))
+        print(str(value))
+        print(str(attrs))
+        
+        #value = [v.code3 for v in value]
+        return super().optgroups(name, value, attrs)
 
 #class LanguageDescriptor(object):
     #"""
@@ -67,6 +76,10 @@ from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 #? can set setobject to work?
 #! error cases?
 #! what is called where and when?
+
+# if we keep the values simple there is no way to make them fat. 
+# --- 'coerce' will fatten them then stringify them for validation.
+
 
 class LanguageField(CharField):
     default_error_messages = {
@@ -141,8 +154,31 @@ class LanguageField(CharField):
         print('choices:')
         print(str(choices))
         return choices
-        
+
+    def _to_lang(self, value):
+        if (isinstance(value, Language)):
+            return value
+        lang = None
+        try:
+            lang = self.LanguageChoices.queryset[value]
+        except KeyError:
+            raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
+            value
+            ))
+        return lang
+
+    def _to_languages(self, value):
+        #"Deserialization and clean to Python."
+        print('_to_languages')
+        print(str(value))
+        if (isinstance(value, list)):
+            return [self._to_lang(e) for e in value]
+        else:
+          return self._to_lang(value)
+                  
     def formfield(self, **kwargs):
+        print('formfield:')
+        print(str(kwargs))
         # need a multiple choices form
         argname = 'choices_form_class'
         if argname not in kwargs:
@@ -150,108 +186,81 @@ class LanguageField(CharField):
                 kwargs[argname] = TypedMultipleChoiceField
             else:
                 kwargs[argname] = TypedChoiceField
+        #kwargs[argname].widget = Select2
+        if 'coerce' not in kwargs:
+            #kwargs['coerce'] = self._to_languages
+            kwargs['coerce'] = super().to_python
         return super().formfield(**kwargs)
+
+    def _to_code(self, value):
+        if (isinstance(value, Language)):
+            return value.code3
+        return value
+          
+    def get_prep_value(self, value):
+        "Python to database value."
+        print('get_prep_value:')
+        print(str(value))
+        if (isinstance(value, list)):
+            return ','.join(self._to_code(l) for l in value)
+        else:
+            return self._to_code(value)
 
     #def get_prep_value(self, value):
         #"Python to database value."
         #print('get_prep_value:')
         #print(str(value))
         #if (isinstance(value, list)):
-            #return ','.join(l.code3 for l in value)
+            #return ','.join(code for code in value)
         #else:
-            #return value.code3
+            #return value
+            
 
-    def get_prep_value(self, value):
-        "Python to database value."
-        print('get_prep_value:')
-        print(str(value))
-        if (isinstance(value, list)):
-            return ','.join(code for code in value)
-        else:
-            return value
-            
-    def _to_lang(self, value):
-        if (isinstance(value, Language)):
-            return value
-            
-        lang = None
-        try:
-            lang = self.LanguageChoices.get_language(value)
-        except KeyError:
-            raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
-            value
-            ))
-        return lang
-        
+                  
     def _parse_codes_to_langs(self, langstr):
         b = []
         try:
             for code in langstr.split(','):
-                b.append(self.LanguageChoices.get_language(code))
+                b.append(self.LanguageChoices.queryset[code])
         except KeyError:
             raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
             code
             ))
         return b
          
-    #def from_db_value(self, value, expression, connection, context):
-        #"Database value to Python."
-        #print('from_db_value:')
-        #print(str(value))
-        #r = self._parse_codes_to_langs(value)
-        #return r
     def from_db_value(self, value, expression, connection, context):
         "Database value to Python."
         print('from_db_value:')
         print(str(value))
-        b = []
-        for code in value.split(','):
-            b.append(code)
-        return b
-        
-    #def to_python(self, value):
-        #"Deserialization and clean to Python."
-        #print('to_python')
+        r = self._parse_codes_to_langs(value)
+        return r
+    #def from_db_value(self, value, expression, connection, context):
+        #"Database value to Python."
+        #print('from_db_value:')
         #print(str(value))
-        #if (isinstance(value, list)):
-            #return [self._to_lang(e) for e in value]
-        #else:
-          #return self._to_lang(value)
-
+        #b = []
+        #for code in value.split(','):
+            #b.append(code)
+        #return b
+        
     def to_python(self, value):
         "Deserialization and clean to Python."
         print('to_python')
         print(str(value))
         if (isinstance(value, list)):
-            return [super(LanguageField, self).to_python(e) for e in value]
+            return [self._to_lang(e) for e in value]
         else:
-          return super(LanguageField, self).to_python(value)
-          
-    #def validate(self, value, model_instance):
-        #print('validate:')
-        #print(str(value))
-        #if not self.editable:
-            ## Skip validation for non-editable fields.
-            #return
-            
-        ## super tests for editable, checks choices, checks blanks
-        #if (not isinstance(value, list)):
-            #code = value.code3
-            #if not code in self.LanguageChoices:
-                #raise exceptions.ValidationError(
-                    #self.error_messages['invalid_choice'],
-                    #code='invalid_choice',
-                    #params={'value': code},
-                #)
-        #else:
-            #for lang in value:
-                #if not lang.code3 in self.LanguageChoices:
-                    #raise exceptions.ValidationError(
-                        #self.error_messages['invalid_choice'],
-                        #code='invalid_choice',
-                        #params={'value': lang.code3},
-                    #)
+          return self._to_lang(value)
 
+    #def to_python(self, value):
+        #"Deserialization and clean to Python."
+        #print('to_python')
+        #print(str(value))
+        #if (isinstance(value, list)):
+            #return [super(LanguageField, self).to_python(e) for e in value]
+        #else:
+          #return super(LanguageField, self).to_python(value)
+          
     def validate(self, value, model_instance):
         print('validate:')
         print(str(value))
@@ -261,17 +270,42 @@ class LanguageField(CharField):
             
         # super tests for editable, checks choices, checks blanks
         if (not isinstance(value, list)):
-            if not value in self.LanguageChoices:
+            code = value.code3
+            if not code in self.LanguageChoices.queryset:
                 raise ValidationError(
                     self.error_messages['invalid_choice'],
                     code='invalid_choice',
-                    params={'value': value},
+                    params={'value': code},
                 )
         else:
-            for code in value:
-                if not code in self.LanguageChoices:
+            for lang in value:
+                if not lang.code3 in self.LanguageChoices.queryset:
                     raise ValidationError(
                         self.error_messages['invalid_choice'],
                         code='invalid_choice',
-                        params={'value': code},
+                        params={'value': lang.code3},
                     )
+
+    #def validate(self, value, model_instance):
+        #print('validate:')
+        #print(str(value))
+        #if not self.editable:
+             #Skip validation for non-editable fields.
+            #return
+            
+         #super tests for editable, checks choices, checks blanks
+        #if (not isinstance(value, list)):
+            #if not value in self.LanguageChoices.queryset:
+                #raise ValidationError(
+                    #self.error_messages['invalid_choice'],
+                    #code='invalid_choice',
+                    #params={'value': value},
+                #)
+        #else:
+            #for code in value:
+                #if not code in self.LanguageChoices.queryset:
+                    #raise ValidationError(
+                        #self.error_messages['invalid_choice'],
+                        #code='invalid_choice',
+                        #params={'value': code},
+                    #)
