@@ -2,113 +2,47 @@ from django.db.models.fields import CharField, BLANK_CHOICE_DASH
 from django.forms.fields import TypedChoiceField, TypedMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.core import checks
 #from django.conf.global_settings import LANGUAGES as DJANGO_LANGDATA
 from .language_choices import LanguageChoices
 from .lang_models import Language, EmptyLanguage
 from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
-from django.forms.widgets import Select
-
-class Select2(Select):
-    def optgroups(self, name, value, attrs=None):
-        print('optgroups:')
-        print(str(name))
-        print(str(value))
-        print(str(attrs))
-        
-        #value = [v.code3 for v in value]
-        return super().optgroups(name, value, attrs)
-
-#class LanguageDescriptor(object):
-    #"""
-    #A descriptor for country fields on a model instance. Returns a Country when
-    #accessed so you can do things like::
-
-        #>>> from people import Person
-        #>>> person = Person.object.get(name='Chris')
-
-        #>>> person.country.name
-        #'New Zealand'
-
-        #>>> person.country.flag
-        #'/static/flags/nz.gif'
-    #"""
-    #def __init__(self, field):
-        #self.field = field
-
-    ##def __get__(self, instance=None, owner=None):
-        ##print('__get__:')
-        ##if instance is None:
-            ##return self
-        ### Check in case this field was deferred.
-        ##if self.field.name not in instance.__dict__:
-            ##instance.refresh_from_db(fields=[self.field.name])
-        ##value = instance.__dict__[self.field.name]
-        ##print(str(value))
-
-        ###if self.field.multiple:
-        ##if isinstance(value, list):
-            ##return [self.field.LanguageChoices.get_language(code) for code in value]
-        ##return self.field.LanguageChoices.get_language(value)
-
-    #def _to_code(self, value):
-        #if (isinstance(value, Language)):
-            #return value.code3
-        #else:
-            #return value
-            
-    #def __set__(self, instance, value):
-        #print('__set__:')
-        ##if self.field.multiple:
-        #if isinstance(value, list):
-            #r = [self._to_code(l) for l in value]
-        #else:
-            #r = self._to_code(value)
-        #print(str(r))
-        #instance.__dict__[self.field.name] = r
 
 
 
-#! null not allowed
-#? fix errors
+
+#? duplicates are passing?
 #! default should be valid country code
-#! multiple works?
-#? can set setobject to work?
 #! error cases?
-#! what is called where and when?
-
-# if we keep the values simple there is no way to make them fat. 
-# --- 'coerce' will fatten them then stringify them for validation.
-
-
+#! README
+#? enable blank
+#? style
+#? more presets
+#? choices init too complex?
 class LanguageField(CharField):
     default_error_messages = {
         'invalid_choice': _('Select a valid choice. %(value)s is not one of the available choices.'),
     }
     
-    #LanguageChoices = LanguageChoices(pk_in=DJANGO_TRANSLATED)
-    LanguageChoices = LanguageChoices(pk_in=UNITED_NATIONS)
-    #descriptor_class = LanguageDescriptor
-
+    #lang_choices = LanguageChoices(pk_in=DJANGO_TRANSLATED)
+    lang_choices = LanguageChoices(pk_in=UNITED_NATIONS)
 
     """
     A language field for Django models.
     """
     def __init__(self, *args, **kwargs):
         # strip=True,
-        
-        # Local import so the languages aren't loaded unless they are needed.
-        LanguageChoices = kwargs.pop('LanguageChoices', None)
-        # languages default is Django languages
-        if LanguageChoices:
-            self.LanguageChoices = LanguageChoices
+        lang_choices = kwargs.pop('lang_choices', None)
+        if lang_choices:
+            self.lang_choices = lang_choices
         self.blank_label = kwargs.pop('blank_label', None)
         #! what? where?
         #kwargs['empty_value'] = 'und'
         self.multiple = kwargs.pop('multiple', None)
-        kwargs['choices'] = self.LanguageChoices
+        kwargs['choices'] = self.lang_choices
         if self.multiple:
-            kwargs['max_length'] = len(self.LanguageChoices) * 3
+            kwargs['max_length'] = len(self.lang_choices) * 3
         else:
             kwargs['max_length'] = 3
 
@@ -116,20 +50,63 @@ class LanguageField(CharField):
         #kwargs.setdefault('choices', LANGUAGES)
         super(CharField, self).__init__(*args, **kwargs)
 
+    def check(self, **kwargs):
+        errors = super().check(**kwargs)
+        errors.extend(self._check_not_null())
+        errors.extend(self._check_multiple_mul())
+        errors.extend(self._check_blank_und())
+        return errors
 
-    #def contribute_to_class(self, cls, name):
-        #super().contribute_to_class(cls, name)
-        #setattr(cls, self.name, self.descriptor_class(self))
+    def _check_not_null(self):
+        if not self.null:
+            return []
+        return [
+            checks.Error(
+                'null=True not allowed on this field.',
+                obj=self,
+                id='django_languages.E001',
+                hint='For unstated entries use blank=True, or ISO639-3 "und"',
+            )
+        ]
+        
+    def _check_multiple_mul(self):
+        if (not (self.multiple and 'mul' in self.lang_choices.queryset)):
+            return []
+        return [
+            checks.Warning(
+                'Field specifies multiple=True, and "mul" available as a choice.',
+                obj=self,
+                id='django_languages.E002',
+                hint='These are different names for the same condition.'
+                'The condition is not forbidden.'
+                'It may express "several"/"too many to list"?',
+            )
+        ]
 
+    def _check_blank_und(self):
+        if (not (self.blank and 'und' in self.lang_choices.queryset)):
+            return []
+        return [
+            checks.Warning(
+                'Field specifies blank=True, and "und" available as a choice.',
+                obj=self,
+                id='django_languages.E003',
+                hint='These may be different names for the same condition.'
+                'The configuration is not forbidden.'
+                'blank=True writes an empty string to the database, "und" is used by ISO for "undefined".'
+                'They may express different types of non-definition?',
+            )
+        ]
+                
     def deconstruct(self):
         # NB: no ``blank_label`` property, as this isn't database related.
         name, path, args, kwargs = super().deconstruct()
         # is the LanguageChoices, allocated, so remove
         kwargs.pop('choices')
-        # include multiple and the LanguageChoices
+        # include multiple and the lang_choices
         if self.multiple:
             kwargs['multiple'] = self.multiple
-        kwargs['LanguageChoices'] = self.LanguageChoices.__class__
+        kwargs['lang_choices'] = self.lang_choices.__class__
         return name, path, args, kwargs
 
     def get_choices(
@@ -160,9 +137,9 @@ class LanguageField(CharField):
             return value
         lang = None
         try:
-            lang = self.LanguageChoices.queryset[value]
+            lang = self.lang_choices.queryset[value]
         except KeyError:
-            raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
+            raise ValidationError("Invalid value supplied for choices. code: '{}'".format(
             value
             ))
         return lang
@@ -205,25 +182,14 @@ class LanguageField(CharField):
             return ','.join(self._to_code(l) for l in value)
         else:
             return self._to_code(value)
-
-    #def get_prep_value(self, value):
-        #"Python to database value."
-        #print('get_prep_value:')
-        #print(str(value))
-        #if (isinstance(value, list)):
-            #return ','.join(code for code in value)
-        #else:
-            #return value
-            
-
                   
     def _parse_codes_to_langs(self, langstr):
         b = []
         try:
             for code in langstr.split(','):
-                b.append(self.LanguageChoices.queryset[code])
+                b.append(self.lang_choices.queryset[code])
         except KeyError:
-            raise ValidationError("Invalid value for this language LanguageChoices. code: '{}'".format(
+            raise ValidationError("Invalid value supplied for choices. code: '{}'".format(
             code
             ))
         return b
@@ -234,14 +200,6 @@ class LanguageField(CharField):
         print(str(value))
         r = self._parse_codes_to_langs(value)
         return r
-    #def from_db_value(self, value, expression, connection, context):
-        #"Database value to Python."
-        #print('from_db_value:')
-        #print(str(value))
-        #b = []
-        #for code in value.split(','):
-            #b.append(code)
-        #return b
         
     def to_python(self, value):
         "Deserialization and clean to Python."
@@ -251,16 +209,7 @@ class LanguageField(CharField):
             return [self._to_lang(e) for e in value]
         else:
           return self._to_lang(value)
-
-    #def to_python(self, value):
-        #"Deserialization and clean to Python."
-        #print('to_python')
-        #print(str(value))
-        #if (isinstance(value, list)):
-            #return [super(LanguageField, self).to_python(e) for e in value]
-        #else:
-          #return super(LanguageField, self).to_python(value)
-          
+  
     def validate(self, value, model_instance):
         print('validate:')
         print(str(value))
@@ -271,7 +220,7 @@ class LanguageField(CharField):
         # super tests for editable, checks choices, checks blanks
         if (not isinstance(value, list)):
             code = value.code3
-            if not code in self.LanguageChoices.queryset:
+            if not code in self.lang_choices.queryset:
                 raise ValidationError(
                     self.error_messages['invalid_choice'],
                     code='invalid_choice',
@@ -279,33 +228,9 @@ class LanguageField(CharField):
                 )
         else:
             for lang in value:
-                if not lang.code3 in self.LanguageChoices.queryset:
+                if not lang.code3 in self.lang_choices.queryset:
                     raise ValidationError(
                         self.error_messages['invalid_choice'],
                         code='invalid_choice',
                         params={'value': lang.code3},
                     )
-
-    #def validate(self, value, model_instance):
-        #print('validate:')
-        #print(str(value))
-        #if not self.editable:
-             #Skip validation for non-editable fields.
-            #return
-            
-         #super tests for editable, checks choices, checks blanks
-        #if (not isinstance(value, list)):
-            #if not value in self.LanguageChoices.queryset:
-                #raise ValidationError(
-                    #self.error_messages['invalid_choice'],
-                    #code='invalid_choice',
-                    #params={'value': value},
-                #)
-        #else:
-            #for code in value:
-                #if not code in self.LanguageChoices.queryset:
-                    #raise ValidationError(
-                        #self.error_messages['invalid_choice'],
-                        #code='invalid_choice',
-                        #params={'value': code},
-                    #)

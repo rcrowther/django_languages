@@ -4,8 +4,9 @@ import collections
 
 
 
-class Language():
-  # object.__slots__
+class Language(object):
+    __slots__ = ['code3', 'code2', 'scope', 'type', 'name']
+
     def __init__(self, code3, code2, scope, type, name):
         self.code3=code3 
         self.code2=code2 
@@ -13,12 +14,11 @@ class Language():
         self.type=type 
         self.name=name
 
-    def __contains__(self, code):
-        print('__contains__')
-        print(str(other))
-        #if isinstance(self, other.__class__):
-
-        return self.code3 == other
+    #def __contains__(self, code):
+        #print('__contains__')
+        #print(str(other))
+        ##if isinstance(self, other.__class__):
+        #return self.code3 == other
     
     def __hash__(self):
         return hash(code3)
