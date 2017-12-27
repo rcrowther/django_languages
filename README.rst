@@ -4,7 +4,7 @@ A field for languages as data.
 
 Please note that this app is not for internationalization, which is translation of the display text in a site etc. This app is for the input and handling of a language code as data (thus it is much simpler than internationalization). The app may be used, for example, to record the languages a user speaks.
 
-If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (no it can't. because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
+If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (oh no it can't. because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
  
 Limitations
 -----------
@@ -17,9 +17,9 @@ Alternatives
 A module called 'django-languages' already exists in the Python Software package index,
 https://pypi.python.org/pypi/django-languages/0.1 . I have ignored this module. It is not updated for several years.
 
-The app was based in a app called https://github.com/audiolion/django-language-field . This was what I wanted, a form field, but was lacking several facilities (sort, query, etc.) I didn't know how to fork the project, and have now replaced all the code. 
+The app was based in a app called https://github.com/audiolion/django-language-field . This was what I wanted, a form field, but was lacking several facilities (sort, query, etc.) I didn't know how to fork the project, and have replaced the code. 
 
-Some django-languages facilities are taken from an excellent, long-standing django app, django-counties https://github.com/SmileyChris/django-countries/tree/master/django_countries (though I am some way from full replication). Like django-countries, this app is not Model-based.
+Some django-languages facilities are taken from an excellent, long-standing django app, django-countries https://github.com/SmileyChris/django-countries/tree/master/django_countries (though I am some way from full replication). Like django-countries, this app is not Model-based.
 
 There are several language apps (though not as many as 'countries' apps),
 
@@ -31,7 +31,7 @@ As a template tag django-languageselect,
      
      
 Model-based 
------------
++++++++++++
 django-world-languages
     https://github.com/blag/django-world-languages
 
@@ -57,30 +57,30 @@ This class holds a result from the langbase. Of course, because the langbase is 
 
 LanguageChoices delivers a set of language pair tuples to a Django field. Within, it contains an attribute 'queryset', which can be queried for the language data held by the choices.
 
-Form a queryset, ::
+Form some choices, ::
 
     LanguageChoices()
 
-By default this will include the language data from 639-3 that can express the official languages of the United Nations.
+By default this will include the language data from 639-3 that expresses the official languages of the United Nations.
 
 Form a different set of language data, selecting by three-letter codes, ::
 
-    qs = LanguageChoices(pk_in=['eng', 'por', 'spn'])
+    lc = LanguageChoices(pk_in=['eng', 'por', 'spn'])
     
 See the data these codes have selected, ::
 
-    for l in qs
+    for l in lc:
         print(l)
 
 To select only living languages (big list), use the 'type' column in the langbase ::
 
-    qs = LanguageChoices(type_in=['L'])
+    lc = LanguageChoices(type_in=['L'])
 
 See the `639-3 spec`_ for full details.
 
-There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. By default, the app excludes them. You can put them back in,
+There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. By default, the app excludes them. You can put them back in, ::
 
-    qs = LanguageChoices(special_pk_in=['und'])
+    lc = LanguageChoices(special_pk_in=['und'])
 
 appends the und(efined) mark to the queryset.
 
@@ -142,17 +142,17 @@ Getting and setting
 +++++++++++++++++++
 The field contains a trick, it coerces the simple three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
 
->>> o = TextModel.objects.get(pk=1)
->>> o.lang
-<Language "ara", "ar", "I", "L", "Arabic">
->>> o.lang.name
-"Arabic"
+    >>> o = TextModel.objects.get(pk=1)
+    >>> o.lang
+    <Language "ara", "ar", "I", "L", "Arabic">
+    >>> o.lang.name
+    "Arabic"
 
 You can also allocate by country, or three-letter code ::
 
->>> o.lang = 'fra'
->>> o.lang
-<Language "fra", "fr", "I", "L", "French">
+    >>> o.lang = 'fra'
+    >>> o.lang
+    <Language "fra", "fr", "I", "L", "French">
 
 
 Options
