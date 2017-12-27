@@ -119,9 +119,6 @@ Sorting
     For more accurate sorting of translated country names, install the optional pyuca_ package. Unicode collation. Not customizable, but better than usual.
 
 
-.. _pyuca: https://pypi.python.org/pypi/pyuca/
-
-
 
 The Field
 ~~~~~~~~~
@@ -166,3 +163,7 @@ multiple
 blank=True only works on single selectors/selections ('blank' can work oddly on multiple selectors). Alternatively, enable and promote the special 369-3 code 'und'(edined). 
 
 'default' and other Model field attributes should work as expected.
+
+
+.. _pyuca: https://pypi.python.org/pypi/pyuca/
+
