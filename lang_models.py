@@ -13,12 +13,6 @@ class Language(object):
         self.scope=scope 
         self.type=type 
         self.name=name
-
-    #def __contains__(self, code):
-        #print('__contains__')
-        #print(str(other))
-        ##if isinstance(self, other.__class__):
-        #return self.code3 == other
     
     def __hash__(self):
         return hash(code3)

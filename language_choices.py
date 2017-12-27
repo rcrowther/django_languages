@@ -102,9 +102,10 @@ class LanguageChoices():
         undetermined (e.g. never got labeled)
     'zxx'
         not a human language (e.g. animal calls)
-    Any of these can be used in the list. They appear at the end. 
-    However, think before including 'und' - LanguageField uses this for 
-    'blank'. If you are not sure, do not include.
+    Any of these can be used in the list. They appear at the end, 
+    unless specials_at_end=False.Think before using these codes - they 
+    express useful ideas in a standard form. But they may clash, for 
+    example, with the use of a 'blank=True' option.
     
     Use the ..._in entries to specify data to match. By default, no 
     entries are returned.
@@ -128,9 +129,7 @@ class LanguageChoices():
     @param reverse reverse the sort order
     @param sort_key sort by this key. Can be none (no sorting, iterate as data supplied)
     '''
-    # Us DJANGO_TRANSLATED as default
     pk_in = UNITED_NATIONS
-    #pk_in = DJANGO_TRANSLATED
     scope_in=[]
     type_in=[]
     special_pk_in=['und', 'mul', 'zxx']
@@ -177,8 +176,6 @@ class LanguageChoices():
         type_select = 'row[3] in self.type_in' if self.type_in else ''
         select_tmpl = ' '.join((pk_select, scope_select, type_select))
         query_tmpl = _query_template.format(query=select_tmpl)
-        #print('query_tmpl:')
-        #print(query_tmpl)
         # Execute the query in this namespace 
         body = []
         try:
@@ -200,10 +197,6 @@ class LanguageChoices():
         # The options for selecting and modifying data are done.
         # cache and build the queryset
         self.queryset = QuerySet(chain(body, specials))
-        #self._code3_index = {l.code3:l for l in self.queryset}
-        #self._code2_index = {l.code2:l for l in self.queryset if l.code2}
-        #print('query:')
-        #print(str(languages))
         
         # get firsts
         first = [0] * len(self.first_pk_in)
@@ -244,11 +237,8 @@ class LanguageChoices():
         return len(self) != 0
 
     def __getitem__(self, index):
-        # get by index
-        #return self.queryset[index]
         """
-        Some applications expect to be able to access members of the field
-        choices by index.
+        May be helpful to access choices by index.
         """
         try:
             return next(islice(self.__iter__(), index, index+1))

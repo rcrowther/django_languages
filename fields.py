@@ -3,7 +3,7 @@ from django.forms.fields import TypedChoiceField, TypedMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.core import checks
-#from django.conf.global_settings import LANGUAGES as DJANGO_LANGDATA
+
 from .language_choices import LanguageChoices
 from .lang_models import Language, EmptyLanguage
 from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
@@ -13,39 +13,32 @@ from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
 
 #? duplicates are passing?
-#! default should be valid country code
-#! error cases?
 #! README
 #? style
 #? more presets
+#? weak ref to page base out of memory?
 class LanguageField(CharField):
     default_error_messages = {
         'invalid_choice': _('Select a valid choice. %(value)s is not one of the available choices.'),
     }
     
-    #lang_choices = LanguageChoices(pk_in=DJANGO_TRANSLATED)
-    lang_choices = LanguageChoices(pk_in=UNITED_NATIONS)
+    # cached away from 'choices', so the queryset is available
+    lang_choices = LanguageChoices()
 
     """
     A language field for Django models.
     """
     def __init__(self, *args, **kwargs):
-        # strip=True,
         lang_choices = kwargs.pop('lang_choices', None)
         if lang_choices:
             self.lang_choices = lang_choices
         self.blank_label = kwargs.pop('blank_label', None)
-        #! what? where?
-        #kwargs['empty_value'] = 'und'
         self.multiple = kwargs.pop('multiple', None)
         kwargs['choices'] = self.lang_choices
         if self.multiple:
             kwargs['max_length'] = len(self.lang_choices) * 3
         else:
             kwargs['max_length'] = 3
-
-        #kwargs.setdefault('max_length', 3)
-        #kwargs.setdefault('choices', LANGUAGES)
         super(CharField, self).__init__(*args, **kwargs)
 
     def check(self, **kwargs):
@@ -109,12 +102,12 @@ class LanguageField(CharField):
                 'This muddles the multiple widget display. '
                 'Try propmoting "mul" or "und"?',
             )
-        ]                
+        ]
         
     def deconstruct(self):
         # NB: no ``blank_label`` property, as this isn't database related.
         name, path, args, kwargs = super().deconstruct()
-        # is the LanguageChoices, allocated, so remove
+        # is the lang_choices, allocated, so remove
         kwargs.pop('choices')
         # include multiple and the lang_choices
         if self.multiple:
@@ -132,16 +125,15 @@ class LanguageField(CharField):
         # our choices are auto-generated, so no internal-defined option
         if self.blank_label:
             blank_choice = [('', self.blank_label)]
-        #if self.multiple:
-        #    include_blank = False
+        # defensive - it is checked
+        if self.multiple:
+            include_blank = False
         # NB: blank_choice always used as there is no internal 'choices'
         # definition for coders to interact with
         choices = super().get_choices(
             include_blank=include_blank, 
             blank_choice=blank_choice
         )
-        print('choices:')
-        print(str(choices))
         return choices
 
     def _to_lang(self, value):
@@ -160,16 +152,12 @@ class LanguageField(CharField):
 
     def _to_languages(self, value):
         #"Deserialization and clean to Python."
-        print('_to_languages')
-        print(str(value))
         if (isinstance(value, list)):
             return [self._to_lang(e) for e in value]
         else:
           return self._to_lang(value)
                   
     def formfield(self, **kwargs):
-        print('formfield:')
-        print(str(kwargs))
         # need a multiple choices form
         argname = 'choices_form_class'
         if argname not in kwargs:
@@ -177,9 +165,7 @@ class LanguageField(CharField):
                 kwargs[argname] = TypedMultipleChoiceField
             else:
                 kwargs[argname] = TypedChoiceField
-        #kwargs[argname].widget = Select2
         if 'coerce' not in kwargs:
-            #kwargs['coerce'] = self._to_languages
             kwargs['coerce'] = super().to_python
         return super().formfield(**kwargs)
 
@@ -190,8 +176,6 @@ class LanguageField(CharField):
           
     def get_prep_value(self, value):
         "Python to database value."
-        print('get_prep_value:')
-        print(str(value))
         if (isinstance(value, list)):
             return ','.join(self._to_code(l) for l in value)
         else:
@@ -202,7 +186,7 @@ class LanguageField(CharField):
         try:
             for code in langstr.split(','):
                 # can be empty string for blank
-                # no need to add blank, Django creates the option
+                # no need to add a blank option, Django creates
                 if code:
                     b.append(self.lang_choices.queryset[code])
         except KeyError:
@@ -213,15 +197,11 @@ class LanguageField(CharField):
          
     def from_db_value(self, value, expression, connection, context):
         "Database value to Python."
-        print('from_db_value:')
-        print(str(value))
         r = self._parse_codes_to_langs(value)
         return r
         
     def to_python(self, value):
         "Deserialization and clean to Python."
-        print('to_python')
-        print(str(value))
         if (isinstance(value, list)):
             return [self._to_lang(e) for e in value]
         else:
@@ -236,8 +216,6 @@ class LanguageField(CharField):
             )      
             
     def validate(self, value, model_instance):
-        print('validate:')
-        print(str(value))
         if not self.editable:
             # Skip validation for non-editable fields.
             return

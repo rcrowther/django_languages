@@ -1,23 +1,23 @@
 Django-languages
 ================
-Some support for languages as data.
+A field for languages as data.
 
-Please note that this app is not for internationalization, which is translation of the display text in a site etc. This app is for the input and handling of a language code as a field of data (thus it is much simpler than internationalization). The app may be used, for example, to record what languages a user speaks.
+Please note that this app is not for internationalization, which is translation of the display text in a site etc. This app is for the input and handling of a language code as data (thus it is much simpler than internationalization). The app may be used, for example, to record the languages a user speaks.
 
-If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate the 'language of Nih'. But this app can record that a person can speak the 'language of Nih'. 
+If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (no it can't. because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
  
 Limitations
-~~~~~~~~~~~~~
+-----------
 The app is grounded in 639-3, the (slightly contentious) ISO (more or less) standard. So it only deals in three-letter codes, not locale-like codes. That means, for example, the app can not express the full range of Django translations (as Django contains, for example, translations expressed using locale subtags like 'en-gb', 'en-as').
 
 (on the other hand, 639-3 currently can express 7000+ languages in it's three-letter codes, and is a web standard)
 
 Alternatives
-~~~~~~~~~~~~~
+------------
 A module called 'django-languages' already exists in the Python Software package index,
 https://pypi.python.org/pypi/django-languages/0.1 . I have ignored this module. It is not updated for several years.
 
-The app is based in a nice effort called https://github.com/audiolion/django-language-field . This was what I wanted, a form field, but was lacking several facilities (sort, query, etc.) I didn't know how to fork the project, and have now replaced all the code. 
+The app was based in a app called https://github.com/audiolion/django-language-field . This was what I wanted, a form field, but was lacking several facilities (sort, query, etc.) I didn't know how to fork the project, and have now replaced all the code. 
 
 Some django-languages facilities are taken from an excellent, long-standing django app, django-counties https://github.com/SmileyChris/django-countries/tree/master/django_countries (though I am some way from full replication). Like django-countries, this app is not Model-based.
 
@@ -48,37 +48,39 @@ There are many language classifications available. Sets that attempt to cover al
 
 
 The langbase
-++++++++++++
+~~~~~~~~~~~~
 Though the app has no database model, it provides an in-memory language 'base'. This contains much of the data from ISO 639-3. From there, you do a query.
 
-The Queryset class
-~~~~~~~~~~~~~~~~~~
-A queryset is a result from the langbase. Of course, because the langbase is a crude in-memory item, the Queryset is not as sharp in it's queries as a database query language. But, for these purposes, it should be enough.
+The LanguageChoices class
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+This class holds a result from the langbase. Of course, because the langbase is a crude in-memory item, the LanguageChoices is not as sharp in it's queries as a database query language. But, for these purposes, it should be enough.
+
+LanguageChoices delivers a set of language pair tuples to a Django field. Within, it contains an attribute 'queryset', which can be queried for the language data held by the choices.
 
 Form a queryset, ::
 
-    QuerySet()
+    LanguageChoices()
 
-By default this will include the language data from 639-3 that can express Django translations.
+By default this will include the language data from 639-3 that can express the official languages of the United Nations.
 
-Form a different set of language data, selecting by three-letter code, ::
+Form a different set of language data, selecting by three-letter codes, ::
 
-    qs = QuerySet(pk_in=['eng', 'por', 'spn'])
+    qs = LanguageChoices(pk_in=['eng', 'por', 'spn'])
     
 See the data these codes have selected, ::
 
     for l in qs
         print(l)
 
-Select only living languages (big list), ::
+To select only living languages (big list), use the 'type' column in the langbase ::
 
-    qs = QuerySet(type_in=['L'])
+    qs = LanguageChoices(type_in=['L'])
 
 See the `639-3 spec`_ for full details.
 
-There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. These are, by  default, exculded. You can put them back in,
+There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. By default, the app excludes them. You can put them back in,
 
-    qs = QuerySet(special_pk_in=['und'])
+    qs = LanguageChoices(special_pk_in=['und'])
 
 appends the und(efined) mark to the queryset.
 
@@ -105,20 +107,62 @@ DJANGO_TRANSLATED
 
 Or make your own.
 
+Other LanguageChoices options
+++++++++++++++++++++++++++++++
+override
+    Change the common name of one of the languages e.g. override = {fra : "Chez nous"} 
+     
 First
-+++++
-Queryset can do a nice trick from 'django-countries', it can pull out some country data and put it first in the list. It can also repeat that data in the main list.
+    A trick from 'django-countries'. Pull out some country data and put it first in the list. It can also repeat that data in the main list.
 
 Sorting
-+++++++
-For more accurate sorting of translated country names, install the optional
-pyuca_ package.
+    For more accurate sorting of translated country names, install the optional pyuca_ package. Unicode collation. Not customizable, but better than usual.
+
 
 .. _pyuca: https://pypi.python.org/pypi/pyuca/
-
-Unicode collation. Not customizable, but better than the usual.
 
 
 
 The Field
 ~~~~~~~~~
+Like this, in a model definition, ::
+
+    from django_languages import LanguageField
+
+        ...
+        lang = LanguageField(
+            "language",
+            blank_label = 'Not stated...',
+            multiple= False,
+            default = 'fra',
+            help_text="(main) Language of the text.",
+        )
+        
+Getting and setting
++++++++++++++++++++
+The field contains a trick, it coerces the simple three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
+
+>>> o = TextModel.objects.get(pk=1)
+>>> o.lang
+<Language "ara", "ar", "I", "L", "Arabic">
+>>> o.lang.name
+"Arabic"
+
+You can also allocate by country, or three-letter code ::
+
+>>> o.lang = 'fra'
+>>> o.lang
+<Language "fra", "fr", "I", "L", "French">
+
+
+Options
++++++++
+blank_label
+    The blank option should use this text (because the coder will not define the choice tuples for this field, this option can revise the 'blank' name).
+  
+multiple
+    Use a multiple selector, for many languages
+  
+blank=True only works on single selectors/selections ('blank' can work oddly on multiple selectors). Alternatively, enable and promote the special 369-3 code 'und'(edined). 
+
+'default' and other Model field attributes should work as expected.
