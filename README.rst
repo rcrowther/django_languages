@@ -31,7 +31,7 @@ As a template tag django-languageselect,
      
      
 Model-based 
-+++++++++++
+~~~~~~~~~~~
 django-world-languages
     https://github.com/blag/django-world-languages
 
@@ -109,6 +109,7 @@ Or make your own.
 
 Other LanguageChoices options
 ++++++++++++++++++++++++++++++
+
 override
     Change the common name of one of the languages e.g. override = {fra : "Chez nous"} 
      
@@ -127,6 +128,7 @@ Like this, in a model definition, ::
     from django_languages import LanguageField
 
         ...
+        
         lang = LanguageField(
             "language",
             blank_label = 'Not stated...',
@@ -154,13 +156,14 @@ You can also allocate by country, or three-letter code ::
 
 Options
 +++++++
+
 blank_label
-    The blank option should use this text (because the coder will not define the choice tuples for this field, this option can revise the 'blank' name).
+    The blank option will use text defined here (because the coder can not define the choice tuples for this field, this option can revise the 'blank' name).
   
 multiple
     Use a multiple selector, for many languages
   
-blank=True only works on single selectors/selections ('blank' can work oddly on multiple selectors). Alternatively, enable and promote the special 369-3 code 'und'(edined). 
+blank=True only works on single selectors/selections ('blank' can work oddly on multiple selectors). Alternatively, enable and promote the special 369-3 code 'und'(undedined). 
 
 'default' and other Model field attributes should work as expected.
 
