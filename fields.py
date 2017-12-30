@@ -112,7 +112,7 @@ class LanguageField(CharField):
         # include multiple and the lang_choices
         if self.multiple:
             kwargs['multiple'] = self.multiple
-        kwargs['lang_choices'] = self.lang_choices.__class__
+        kwargs['lang_choices'] = self.lang_choices #.__class__
         return name, path, args, kwargs
 
     def get_choices(

@@ -72,7 +72,9 @@ for row in LANGBASE:
 '''
 #? make full __getattr__
 #? index respects two_letter_codes
-#? Index by full iterable length
+from django.utils.deconstruct import deconstructible
+
+@deconstructible
 class LanguageChoices():
     '''
     List of language codes.
@@ -210,7 +212,7 @@ class LanguageChoices():
         # cache the completed iteration data
         self._first_cache = first
         self._body_cache = body
-        self._special_cache = specials
+        self._specials_cache = specials
 
     def _translate_pair(self, lang):
         code = lang.code2 if (self.two_letter_codes and lang.code2) else lang.code3
@@ -223,7 +225,7 @@ class LanguageChoices():
         body = (self._translate_pair(lang) for lang in self._body_cache)
         if (self.sort or self.reverse):   
             body = sorted(body, key=sort_key, reverse=self.reverse)
-        specials = (self._translate_pair(lang) for lang in self._special_cache)
+        specials = (self._translate_pair(lang) for lang in self._specials_cache)
 
         if (not self.specials_at_end):
            langs = chain(specials, first, body)
@@ -245,7 +247,7 @@ class LanguageChoices():
         except TypeError:
             return list(islice(self.__iter__(), index.start, index.stop,
                                index.step))
-        
+
     def __len__(self):
         size = len(self._first_cache)
         size += len(self._body_cache)

@@ -4,11 +4,11 @@ A field for languages as data.
 
 Please note that this app is not for internationalization, which is translation of the display text in a site etc. This app is for the input and handling of a language code as data (thus it is much simpler than internationalization). The app may be used, for example, to record the languages a user speaks.
 
-If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Nih' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (oh no it can't. because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
+If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Ni!' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (oh no it can't. because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
  
 Limitations
 -----------
-The app is grounded in 639-3, the (slightly contentious) ISO (more or less) standard. So it only deals in three-letter codes, not locale-like codes. That means, for example, the app can not express the full range of Django translations (as Django contains, for example, translations expressed using locale subtags like 'en-gb', 'en-as').
+The app is grounded in `ISO 639-3`_, the (slightly contentious) ISO (more or less) standard. So it only deals in three-letter codes, not locale-like codes. That means, for example, the app can not express the full range of Django translations (as Django contains, for example, translations expressed using locale subtags like 'en-gb', 'en-as').
 
 (on the other hand, 639-3 currently can express 7000+ languages in it's three-letter codes, and is a web standard)
 
@@ -76,7 +76,7 @@ To select only living languages (big list), use the 'type' column in the langbas
 
     lc = LanguageChoices(type_in=['L'])
 
-See the `639-3 spec`_ for full details.
+The `639-3 table`_ page contains links to notes on the table structure.
 
 There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. By default, the app excludes them. You can put them back in, ::
 
@@ -167,6 +167,7 @@ blank=True only works on single selectors/selections ('blank' can work oddly on 
 
 'default' and other Model field attributes should work as expected.
 
-
+.. _ISO 639-3: www.sil.org/iso639-3/
+.. _ISO 639-3 table: http://www-01.sil.org/iso639-3/codes.asp
 .. _pyuca: https://pypi.python.org/pypi/pyuca/
 

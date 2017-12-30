@@ -1,17 +1,17 @@
 import collections
 
-#Language = collections.namedtuple('Language', 'code3 code2 scope type name')
+#Language = collections.namedtuple('Language', 'code3 code2 scope tpe name')
 
 
 
 class Language(object):
-    __slots__ = ['code3', 'code2', 'scope', 'type', 'name']
+    __slots__ = ['code3', 'code2', 'scope', 'tpe', 'name']
 
-    def __init__(self, code3, code2, scope, type, name):
+    def __init__(self, code3, code2, scope, tpe, name):
         self.code3=code3 
         self.code2=code2 
         self.scope=scope 
-        self.type=type 
+        self.tpe=tpe 
         self.name=name
     
     def __hash__(self):
@@ -35,11 +35,11 @@ class Language(object):
             self.code3,
             self.code2, 
             self.scope, 
-            self.type, 
+            self.tpe, 
             self.name
         )
 
-EmptyLanguage = Language(code3='', code2='', scope='', type='', name='empty language')
+EmptyLanguage = Language(code3='', code2='', scope='', tpe='', name='empty language')
 
 '''
 Small model representing a chosen code and common name.
