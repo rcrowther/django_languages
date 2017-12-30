@@ -76,7 +76,7 @@ To select only living languages (big list), use the 'type' column in the langbas
 
     lc = LanguageChoices(type_in=['L'])
 
-The `639-3 table`_ page contains links to notes on the table structure.
+The `ISO 639-3 table`_ page contains links to notes on the table structure.
 
 There is a twist. 639-3 includes some special codes for 'undefined' or 'not a language' marks. By default, the app excludes them. You can put them back in, ::
 
