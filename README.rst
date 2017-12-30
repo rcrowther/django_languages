@@ -72,6 +72,8 @@ See the data these codes have selected, ::
     for l in lc:
         print(l)
 
+Please note that order of presentation is the order of pk_in (and other explicit selectors shown below also order the display according to the order of declaration).
+
 To select only living languages (big list), use the 'type' column in the langbase ::
 
     lc = LanguageChoices(type_in=['L'])
@@ -113,13 +115,15 @@ Other LanguageChoices options
 override
     Change the common name of one of the languages e.g. override = {fra : "Chez nous"} 
      
-First
-    A trick from 'django-countries'. Pull out some country data and put it first in the list. It can also repeat that data in the main list.
+first
+    A trick from 'django-countries'. Pull out some country data and put it first in the list. first_repeat=True (default=False) will repeat that data in the main list.
 
-Sorting
-    For more accurate sorting of translated country names, install the optional pyuca_ package. Unicode collation. Not customizable, but better than usual.
+sort
+    (default=True, if sort=False you get the list as in the langbase) Sort the body entries. For more accurate sorting of translated country names, install the optional pyuca_ package for Unicode collation. Not customizable, but better than usual.
 
-
+reverse
+    Sort backwards.
+    
 Implementation options
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -169,7 +173,7 @@ Like this, in a model definition, ::
         
 Getting and setting
 +++++++++++++++++++
-The field coerces the simple three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
+The field coerces the three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
 
     >>> o = TextModel.objects.get(pk=1)
     >>> o.lang

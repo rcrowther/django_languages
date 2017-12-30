@@ -10,13 +10,6 @@ from .selectors import DJANGO_TRANSLATED, UNITED_NATIONS
 
 
 
-
-
-#? duplicates are passing?
-#! README
-#? style
-#? more presets
-#? weak ref to page base out of memory?
 class LanguageField(CharField):
     default_error_messages = {
         'invalid_choice': _('Select a valid choice. %(value)s is not one of the available choices.'),
