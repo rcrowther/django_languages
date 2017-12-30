@@ -197,7 +197,7 @@ blank=True only works on single selectors/selections ('blank' can work oddly on 
 
 'default' and other Model field attributes should work as expected.
 
-.. _ISO 639-3: www.sil.org/iso639-3/
+.. _ISO 639-3: http://www-01.sil.org/iso639-3/
 .. _ISO 639-3 table: http://www-01.sil.org/iso639-3/codes.asp
 .. _pyuca: https://pypi.python.org/pypi/pyuca/
 
