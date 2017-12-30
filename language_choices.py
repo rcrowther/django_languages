@@ -134,10 +134,10 @@ class LanguageChoices():
     pk_in = UNITED_NATIONS
     scope_in=[]
     type_in=[]
-    special_pk_in=['und', 'mul', 'zxx']
+    special_pk_in=[]
         
-    override={'spa' : 'Ole!', 'zxx' : 'gabble!'}
-    first_pk_in=['ara', 'spa']
+    override={}
+    first_pk_in=[]
     first_repeat=True
     specials_at_end = True
     sort=True

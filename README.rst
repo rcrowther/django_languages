@@ -120,9 +120,39 @@ Sorting
     For more accurate sorting of translated country names, install the optional pyuca_ package. Unicode collation. Not customizable, but better than usual.
 
 
+Implementation options
+~~~~~~~~~~~~~~~~~~~~~~
 
-The Field
-~~~~~~~~~
+As choices
+++++++++++
+LanguageChoices can be used in a Widget, form.Field or Model.field to provide the 'choices' option. For this use, a Model.field is probably most appropriate (languages options subsituting for a set of fixed options). The field is a Charfield and the option max_length will be 3 (for the code), ::
+
+    class InternationalPaper:
+       ...
+       # provide middle and old english
+       LANGUAGE_CHOICES = LanguageChoices(pk_in=['eng', 'enm', 'ang'])
+       
+       lang = models.CharField(
+          blank = True,
+          choices=LANGUAGE_CHOICES,
+          max_length=3,
+          default = 'eng',
+          help_text="Primary language of text.",
+          )
+      
+This method has an advantage of simplicity and maintainability. A disadvantage is that it will not handle multiple options without a field change.
+
+ 
+The Model Field
++++++++++++++++
+The special field is a custom object for a central place in Django (a Model). So it has that disadvantage. But the LanguageField collects a couple of display options. The main option is multiple selections by configuration. 
+
+The second advantage of the field is that it returns 'rich' data. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are classes based in the lines in the langbase, so look like this, ::
+
+    <Language "zho", "zh", "M", "L", "Chinese">]
+
+Which may be of interest in some display or further-code situations.
+
 Like this, in a model definition, ::
 
     from django_languages import LanguageField
@@ -139,7 +169,7 @@ Like this, in a model definition, ::
         
 Getting and setting
 +++++++++++++++++++
-The field contains a trick, it coerces the simple three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
+The field coerces the simple three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
 
     >>> o = TextModel.objects.get(pk=1)
     >>> o.lang
