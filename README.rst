@@ -39,8 +39,14 @@ django-languages-plus. Works with 'django-countries',
     https://pypi.python.org/pypi/django-languages-plus/1.0.0
 
 
+Installation/dependencies
+--------------------------
+Place the code in your environment. No other installation needed.
+
+
 The app
 -------
+
 
 Language sets
 ~~~~~~~~~~~~~
@@ -131,6 +137,8 @@ As choices
 ++++++++++
 LanguageChoices can be used in a Widget, form.Field or Model.field to provide the 'choices' option. For this use, a Model.field is probably most appropriate (languages options subsituting for a set of fixed options). The field is a Charfield and the option max_length will be 3 (for the code), ::
 
+    from django_languages.fields import LanguageField, LanguageChoices
+
     class InternationalPaper:
        ...
        # provide middle and old english
@@ -144,14 +152,53 @@ LanguageChoices can be used in a Widget, form.Field or Model.field to provide th
           help_text="Primary language of text.",
           )
       
-This method has an advantage of simplicity and maintainability. A disadvantage is that it will not handle multiple options without a field change.
+This method has an advantage of adhering to Django APIs, so maintainability. A disadvantage is that the 'choices' interface is not (in this case) flexible for some potential needs.
 
- 
-The Model Field
+
+LanguageField
 +++++++++++++++
-The special field is a custom object for a central place in Django (a Model). So it has that disadvantage. But the LanguageField collects a couple of display options. The main option is multiple selections by configuration. 
+This is a Model field made to handle LanguageChoices data. Note it is a Model field, not a Form field. It has been customized so that, if automatic form generation is used (admin modules etc.), it create the required interface in forms also. Setup looks like this, ::
 
-The second advantage of the field is that it returns 'rich' data. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are classes based in the lines in the langbase, so look like this, ::
+    from django_languages.fields import LanguageField, LanguageChoices
+
+
+    class InternationalPaper:
+       ...
+       
+    lang = LanguageField(
+      "language",
+      blank = True,
+      blank_label = 'Not stated...',
+      multiple= True,
+      choices=LANGUAGE_CHOICES,
+      default = 'eng',
+      help_text="Language in text and/or speech.",
+      )  
+      
+Two features of the custom field can be seen in this example. First, the field can be set to 'multiple' using a configuration option. Second, the 'blank' display can be set using the 'blank_label' option (setting the label is not otherwise possible, as this would usually be provided in the 'choice' iterable, but we are using a code-generated LanguageChoices).
+
+LanguageField has a feature which is not evident, it has custom configuration checking to help set up the field.
+
+Also note one annoying feature; 'lang_choices' must be declared, not 'choices'. the field will otherwise throw an error (it needs an independant reference to the class).
+
+
+Options
+_______
+
+blank_label
+    The blank option will use text defined here (because the coder can not define the choice tuples for this field, this option can revise the 'blank' name).
+  
+multiple
+    Use a multiple selector, for many languages
+  
+blank=True only works on single selectors/selections ('blank' can work oddly on multiple selectors). Alternatively, enable and promote the special 369-3 code 'und'(undefined). 
+
+'default' and other Model field attributes should work as expected.
+
+      
+LanguageRelatedField
+++++++++++++++++++++
+It seems a loss to have the ISO639-3 data available for selection, but only display the common name of a language. This Model field extends the custom field idea a little further. It returns 'rich' data, as if from a 'related' Model. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are a class 'Language' based in the lines in the langbase, so look like this, ::
 
     <Language "zho", "zh", "M", "L", "Chinese">]
 
@@ -170,9 +217,11 @@ Like this, in a model definition, ::
             default = 'fra',
             help_text="(main) Language of the text.",
         )
-        
-Getting and setting
-+++++++++++++++++++
+
+One issue with this field is that these full-class returns stringify and may serialize in odd ways. The stock form serialisation is covered, but the code can not account for how the returned classes may behave in other contexts. So, if you would like to display 2-letter codes, display 'dead language' icons, or other language detail, then use LanguageRelatedField. But for the simple storage of a language code, prefer LanguageField.
+
+Getting and setting LanguageRelatedField
+________________________________________
 The field coerces the three-letter code held in the database into a full Language class. The returned class instance contains the row data from the langbase. Assume TextModel has a LanguageField 'lang', ::
 
     >>> o = TextModel.objects.get(pk=1)
@@ -189,17 +238,9 @@ You can also allocate by country, or three-letter code ::
 
 
 Options
-+++++++
+_______
+Same as LanguageField.
 
-blank_label
-    The blank option will use text defined here (because the coder can not define the choice tuples for this field, this option can revise the 'blank' name).
-  
-multiple
-    Use a multiple selector, for many languages
-  
-blank=True only works on single selectors/selections ('blank' can work oddly on multiple selectors). Alternatively, enable and promote the special 369-3 code 'und'(undedined). 
-
-'default' and other Model field attributes should work as expected.
 
 .. _ISO 639-3: http://www-01.sil.org/iso639-3/
 .. _ISO 639-3 table: http://www-01.sil.org/iso639-3/codes.asp
