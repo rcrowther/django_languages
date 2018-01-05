@@ -95,7 +95,7 @@ appends the und(efined) mark to the queryset.
 
 Presets
 +++++++
-A few presets have been built for 'pk_in'. All are contentious. But then, if you are not contending this issue, why not?
+A few presets have been built for 'pk_in'. All are contentious. But, if you are not contending this issue, why not?
 
 UNITED_NATIONS
     Official languages of the UN. 6 entries.
@@ -110,7 +110,7 @@ INTERNET_MOST_TRAFFIC
      
 DJANGO_TRANSLATED
     Django translations from django.conf.global_settings, 2017. Not exact; 
-    some dialects dropped, and added plain Chinese.
+    some dialects dropped, and added plain Chinese/English.
     Will reflect areas with computing and Python coding. 78 entries.
 
 Or make your own.
@@ -157,7 +157,7 @@ This method has an advantage of adhering to Django APIs, so maintainability. A d
 
 LanguageField
 +++++++++++++++
-This is a Model field made to handle LanguageChoices data. Note it is a Model field, not a Form field. It has been customized so that, if automatic form generation is used (admin modules etc.), it create the required interface in forms also. Setup looks like this, ::
+This is a Model field made to handle LanguageChoices data. Note it is a Model field, not a Form field. It has been customized so that, if automatic form generation is used (admin modules etc.), it creates the required interface in forms also. Setup looks like this, ::
 
     from django_languages.fields import LanguageField, LanguageChoices
 
@@ -198,7 +198,7 @@ blank=True only works on single selectors/selections ('blank' can work oddly on 
       
 LanguageRelatedField
 ++++++++++++++++++++
-It seems a loss to have the ISO639-3 data available for selection, but only display the common name of a language. This Model field extends the custom field idea a little further. It returns 'rich' data, as if from a 'related' Model. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are a class 'Language' based in the lines in the langbase, so look like this, ::
+It seems a loss to have the ISO639-3 data available for selection, but only display the common name of a language. This Model field extends the custom field idea further. It returns 'rich' data, as if from a 'related' Model. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are a class 'Language' based in the lines in the langbase, so look like this, ::
 
     <Language "zho", "zh", "M", "L", "Chinese">]
 
@@ -218,7 +218,7 @@ Like this, in a model definition, ::
             help_text="(main) Language of the text.",
         )
 
-One issue with this field is that these full-class returns stringify and may serialize in odd ways. The stock form serialisation is covered, but the code can not account for how the returned classes may behave in other contexts. So, if you would like to display 2-letter codes, display 'dead language' icons, or other language detail, then use LanguageRelatedField. But for the simple storage of a language code, prefer LanguageField.
+One issue with this field is that these full-class returns stringify and may serialize in odd ways. The stock form serialisation is assured, but the code can not account for how the returned classes may behave in other contexts. So, if you would like to display 2-letter codes, or 'dead language' icons, or other language detail, then use LanguageRelatedField. For the simple storage of a language code, prefer LanguageField.
 
 Getting and setting LanguageRelatedField
 ________________________________________
