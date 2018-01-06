@@ -113,6 +113,9 @@ DJANGO_TRANSLATED
     some dialects dropped, and added plain Chinese/English.
     Will reflect areas with computing and Python coding. 78 entries.
 
+MOST_SPEAKERS
+    from https://en.wikipedia.org/wiki/List_of_languages_by_number_of_native_speakers. Less contentious list than most, Lack of cultural targets may limit use. Some coverage for neglected areas such as South Asia and Chinese distinctions. 100 entries.
+
 Or make your own.
 
 Other LanguageChoices options
