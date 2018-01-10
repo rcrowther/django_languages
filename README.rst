@@ -133,9 +133,22 @@ sort
 reverse
     Sort backwards.
     
+
 Implementation options
 ~~~~~~~~~~~~~~~~~~~~~~
 
+Templating, a reminder
+++++++++++++++++++++++
+Django-languages stored language data as the 3-letter code. Another way of sayiung this is that the data, in some minor way is serialised (this is not special, this is true for all Django 'choices' fields).
+
+There will be some cases when you wish to display the language code itself. Using the field anmed as it is below, in a template, something like, ::    
+    
+    <li>{{ object.lang }}</li>
+    
+But, more often, you will want to display the common name of the language, ::
+
+    <li>{{ object.get_lang_display }}</li>
+    
 As choices
 ++++++++++
 LanguageChoices can be used in a Widget, form.Field or Model.field to provide the 'choices' option. For this use, a Model.field is probably most appropriate (languages options subsituting for a set of fixed options). The field is a Charfield and the option max_length will be 3 (for the code), ::
@@ -245,6 +258,19 @@ _______
 Same as LanguageField.
 
 
+Templating
+__________
+The return is a full object. To display the common name of the language, ::
+
+    <li>{{ object.name }}</li>
+    
+To get the 'type' code, ::
+
+    <li>{{ object.tpe }}</li>
+    
+etc.
+
+    
 .. _ISO 639-3: http://www-01.sil.org/iso639-3/
 .. _ISO 639-3 table: http://www-01.sil.org/iso639-3/codes.asp
 .. _pyuca: https://pypi.python.org/pypi/pyuca/
