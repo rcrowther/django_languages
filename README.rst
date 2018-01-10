@@ -139,9 +139,9 @@ Implementation options
 
 Templating, a reminder
 ++++++++++++++++++++++
-Django-languages stored language data as the 3-letter code. Another way of sayiung this is that the data, in some minor way is serialised (this is not special, this is true for all Django 'choices' fields).
+Django-languages stores language data as the 3-letter code. Another way of saying this is that the data, in some minor way, is serialised (this is not special, this is true for all Django 'choices' fields).
 
-There will be some cases when you wish to display the language code itself. Using the field anmed as it is below, in a template, something like, ::    
+There will be some cases when you wish to display the language code itself. Using the field named as it is below, in a template, something like, ::    
     
     <li>{{ object.lang }}</li>
     
