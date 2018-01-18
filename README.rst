@@ -4,7 +4,7 @@ A field for languages as data.
 
 Please note that this app is not for internationalization, which is translation of the display text in a site etc. This app is for the input and handling of a language code as data (thus it is much simpler than internationalization). The app may be used, for example, to record the languages a user speaks.
 
-If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Ni!' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (oh no it can't. because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
+If a language is in the data within this app, it does not mean Django has translation ability for that language. If the 'language of Ni!' is listed, Django may not be able to translate the 'language of Ni!'. But this app can record that a person can speak the 'language of Ni!' (oh no it can't! Because ISO639-3 doesn't record 'Ni!' as a language, which it plainly is, even if it only has one word). 
  
 Limitations
 -----------
@@ -57,6 +57,7 @@ The langbase
 ~~~~~~~~~~~~
 Though the app has no database model, it provides an in-memory language 'base'. This contains much of the data from ISO 639-3. From there, you do a query.
 
+
 The LanguageChoices class
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 This class holds a result from the langbase. Of course, because the langbase is a crude in-memory item, the LanguageChoices is not as sharp in it's queries as a database query language. But, for these purposes, it should be enough.
@@ -65,11 +66,11 @@ LanguageChoices delivers a set of language pair tuples to a Django field. Within
 
 Form some choices, ::
 
+    from django_languages import LanguageChoices
+    
     LanguageChoices()
 
-By default this will include the language data from 639-3 that expresses the official languages of the United Nations.
-
-Form a different set of language data, selecting by three-letter codes, ::
+By default this will fail. It needs languages declaring. Form a set of language data, selecting by three-letter code, ::
 
     lc = LanguageChoices(pk_in=['eng', 'por', 'spn'])
     
@@ -153,9 +154,9 @@ As choices
 ++++++++++
 LanguageChoices can be used in a Widget, form.Field or Model.field to provide the 'choices' option. For this use, a Model.field is probably most appropriate (languages options subsituting for a set of fixed options). The field is a Charfield and the option max_length will be 3 (for the code), ::
 
-    from django_languages.fields import LanguageField, LanguageChoices
+    from django_languages import LanguageField, LanguageChoices
 
-    class InternationalPaper:
+    class EnglishPaper:
        ...
        # provide middle and old english
        LANGUAGE_CHOICES = LanguageChoices(pk_in=['eng', 'enm', 'ang'])
@@ -175,27 +176,28 @@ LanguageField
 +++++++++++++++
 This is a Model field made to handle LanguageChoices data. Note it is a Model field, not a Form field. It has been customized so that, if automatic form generation is used (admin modules etc.), it creates the required interface in forms also. Setup looks like this, ::
 
-    from django_languages.fields import LanguageField, LanguageChoices
-
+    from django_languages import LanguageField, LanguageChoices, INTERNET_MOST_TRAFFIC
 
     class InternationalPaper:
-       ...
+        ...
+        # provide several international languages
+        LANGUAGE_CHOICES = LanguageChoices(pk_in=INTERNET_MOST_TRAFFIC)
        
-    lang = LanguageField(
-      "language",
-      blank = True,
-      blank_label = 'Not stated...',
-      multiple= True,
-      choices=LANGUAGE_CHOICES,
-      default = 'eng',
-      help_text="Language in text and/or speech.",
-      )  
+        lang = LanguageField(
+          "language",
+          blank = True,
+          blank_label = 'Not stated...',
+          multiple= True,
+          lang_choices=LANGUAGE_CHOICES,
+          default = 'eng',
+          help_text="Language in text and/or speech.",
+          )  
       
 Two features of the custom field can be seen in this example. First, the field can be set to 'multiple' using a configuration option. Second, the 'blank' display can be set using the 'blank_label' option (setting the label is not otherwise possible, as this would usually be provided in the 'choice' iterable, but we are using a code-generated LanguageChoices).
 
 LanguageField has a feature which is not evident, it has custom configuration checking to help set up the field.
 
-Also note one annoying feature; 'lang_choices' must be declared, not 'choices'. the field will otherwise throw an error (it needs an independant reference to the class).
+Also note one annoying feature; 'lang_choices' must be declared, not 'choices'. The field will otherwise throw an error (the code needs an independant reference to the class data).
 
 
 Options
@@ -214,7 +216,7 @@ blank=True only works on single selectors/selections ('blank' can work oddly on 
       
 LanguageRelatedField
 ++++++++++++++++++++
-It seems a loss to have the ISO639-3 data available for selection, but only display the common name of a language. This Model field extends the custom field idea further. It returns 'rich' data, as if from a 'related' Model. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are a class 'Language' based in the lines in the langbase, so look like this, ::
+It seems a loss to have the ISO639-3 data available for selection, but only display the common name of a language. This Model field extends the custom field idea further. It returns 'rich' data, as if from a 'related' Model. Returns from queries, and into templates, are not a simple string that represents the option e.g. 'Arabic'. They are a class 'Language' based in the lines in the langbase. They look like this, ::
 
     <Language "zho", "zh", "M", "L", "Chinese">]
 
@@ -222,19 +224,24 @@ Which may be of interest in some display or further-code situations.
 
 Like this, in a model definition, ::
 
-    from django_languages import LanguageField
-
+    from django_languages import LanguageRelatedField, LanguageChoices, INTERNET_MOST_TRAFFIC
+    
+    class InternationalPaper:
         ...
+        # provide several international languages
+        LANGUAGE_CHOICES = LanguageChoices(pk_in=INTERNET_MOST_TRAFFIC)
         
-        lang = LanguageField(
+        lang = LanguageRelatedField(
             "language",
             blank_label = 'Not stated...',
             multiple= False,
+            lang_choices=LANGUAGE_CHOICES,
             default = 'fra',
             help_text="(main) Language of the text.",
         )
 
 One issue with this field is that these full-class returns stringify and may serialize in odd ways. The stock form serialisation is assured, but the code can not account for how the returned classes may behave in other contexts. So, if you would like to display 2-letter codes, or 'dead language' icons, or other language detail, then use LanguageRelatedField. For the simple storage of a language code, prefer LanguageField.
+
 
 Getting and setting LanguageRelatedField
 ________________________________________
@@ -246,7 +253,7 @@ The field coerces the three-letter code held in the database into a full Languag
     >>> o.lang.name
     "Arabic"
 
-You can also allocate by country, or three-letter code ::
+You can allocate by Language class, or three-letter code ::
 
     >>> o.lang = 'fra'
     >>> o.lang
