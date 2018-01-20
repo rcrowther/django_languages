@@ -173,11 +173,22 @@ class LanguageChoices():
             
     def cache_langmap(self):
         # Dynamically construct the query
-        pk_select = 'row[0] in self.pk_in' if self.pk_in else ''
-        scope_select = 'row[2] in self.scope_in' if self.scope_in else ''
-        type_select = 'row[3] in self.type_in' if self.type_in else ''
-        select_tmpl = ' '.join((pk_select, scope_select, type_select))
-        query_tmpl = _query_template.format(query=select_tmpl)
+        query = ''
+        if self.pk_in:
+            query = 'row[0] in self.pk_in'
+        if self.scope_in:
+            scope_select = 'row[2] in self.scope_in'
+            if not query:
+                query = scope_select
+            else:
+                query = query + ' or ' + scope_select
+        if self.type_in:
+            type_select = 'row[3] in self.type_in'
+            if not query:
+                query = type_select
+            else:
+                query = query + ' or ' + type_select
+        query_tmpl = _query_template.format(query=query)
         # Execute the query in this namespace 
         body = []
         try:
