@@ -131,7 +131,7 @@ class LanguageChoices():
     @param reverse reverse the sort order
     @param sort_key sort by this key. Can be none (no sorting, iterate as data supplied)
     '''
-    pk_in = UNITED_NATIONS
+    pk_in = []
     scope_in=[]
     type_in=[]
     special_pk_in=[]
@@ -183,7 +183,7 @@ class LanguageChoices():
         try:
             exec(query_tmpl) #in namespace
         except SyntaxError as e:
-            raise SyntaxError(e.message + ':\n' + query_tmpl)
+            raise SyntaxError('Query on langbase failed to execute: query:{}\n'.format(query_tmpl))
 
         # now query the specials
         specials = []
